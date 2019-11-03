@@ -1,0 +1,21 @@
+executable('pling',
+	'envelope.cpp',
+	'filter.cpp',
+	'midi.cpp',
+	'oscilloscope.cpp',
+	'pling.cpp',
+	'shader.cpp',
+	'simple.cpp',
+	'text.cpp',
+	dependencies: [
+		alsa,
+		fmtlib,
+		gl,
+		glm,
+		sdl2,
+		sdl2_ttf,
+		threads,
+	],
+	cpp_args: '-DGL_GLEXT_PROTOTYPES=1',
+	install: true
+)
