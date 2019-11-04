@@ -43,26 +43,26 @@ void Simple::render(Chunk &chunk) {
 
 float Simple::get_zero_crossing(float offset) {
 	float crossing = offset;
-	uint8_t key = 255;
 
-	for (auto &voice: voices) {
-		if (voice.key < key) {
-			key = voice.key;
-			crossing = voice.get_zero_crossing(offset, params);
-		}
+	if(Voice *lowest = voices.get_lowest(); lowest) {
+		crossing = lowest->get_zero_crossing(offset, params);
 	}
 
 	return crossing;
 }
 
 void Simple::note_on(uint8_t key, uint8_t vel) {
+	Voice *voice = voices.press(key);
+	if (!voice)
+		return;
+
 	float freq = 440.0 * powf(2.0, (key - 69) / 12.0);
 	float amp = expf((vel - 127.) / 32.);
-	voices.get(key).init(key, freq, amp);
+	voice->init(key, freq, amp);
 }
 
 void Simple::note_off(uint8_t key, uint8_t vel) {
-	voices.get(key).release();
+	voices.release(key);
 }
 
 void Simple::pitch_bend(int16_t value) {
@@ -122,6 +122,11 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {} {} {}\n", params.freq, params.Q, params.gain, val % 7, val % 4);
 		break;
+
+	case 64:
+		voices.set_sustain(val);
+		break;
+
 	default:
 		fmt::print(std::cerr, "{} {}\n", control, val);
 		break;
