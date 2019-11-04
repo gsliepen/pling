@@ -63,6 +63,7 @@ can be offloaded to shaders that run on the GPU.
 
 * ALSA
 * C++17-compliant compiler
+* FFTW3
 * fmtlib
 * FreeSans font
 * GLM
@@ -72,7 +73,7 @@ can be offloaded to shaders that run on the GPU.
 
 On Debian-based systems, you can install all the dependencies with the following command:
 
-    sudo apt install build-essential fonts-freefont-ttf libasound2-dev libfmt-dev libglm-dev meson libsdl2-dev libsdl2-ttf-dev
+    sudo apt install build-essential fonts-freefont-ttf libasound2-dev libfftw3-dev libfmt-dev libglm-dev meson libsdl2-dev libsdl2-ttf-dev
 
 # Building
 

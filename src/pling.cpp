@@ -2,6 +2,7 @@
 
 #include "pling.hpp"
 
+#include <fftw3.h>
 #include <fmt/ostream.h>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -14,11 +15,13 @@
 #include "midi.hpp"
 #include "oscilloscope.hpp"
 #include "simple.hpp"
+#include "spectrum.hpp"
 #include "text.hpp"
 
 static Font::Manager font_manager;
 static Text text;
 static Oscilloscope::Signal osc_signal;
+static Spectrum::Signal spectrum_signal;
 
 Simple program;
 
@@ -65,10 +68,17 @@ static void ui() {
 	text.set_position(16, 16);
 
 	Oscilloscope::Widget oscilloscope(osc_signal);
-	oscilloscope.set_position(16, 200, 768, 256);
+	oscilloscope.set_position(16, 336, 768, 128);
+
+	Spectrum::Widget spectrum(spectrum_signal);
+	spectrum.set_position(16, 192, 768, 128);
+
+	/* Early write out of FFTW wisdom */
+	fftwf_export_wisdom_to_filename("pling.wisdom");
 
 	while (handle_events()) {
 		render(oscilloscope);
+		spectrum.render(800, 480);
 		SDL_GL_SwapWindow(window);
 	}
 
@@ -84,6 +94,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 
 	/* Add the samples to the oscilloscope */
 	osc_signal.add(chunk, program.get_zero_crossing(-384));
+	spectrum_signal.add(chunk);
 
 	/* Convert to 16-bit signed stereo */
 	int nsamples = len / 4;
@@ -255,10 +266,12 @@ static void midi() {
 
 int main(int argc, char *args[]) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	fftwf_import_wisdom_from_filename("pling.wisdom");
 
 	audio();
 	std::thread midi_thread(midi);
 	ui();
 
+	fftwf_export_wisdom_to_filename("pling.wisdom");
 	SDL_Quit();
 }

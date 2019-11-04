@@ -9,6 +9,7 @@ project('Pling', 'cpp',
 cpp = meson.get_compiler('cpp')
 
 alsa = dependency('alsa')
+fftw3f = dependency('fftw3f')
 fmtlib = dependency('fmt')
 gl = dependency('gl')
 glm = dependency('glm')
