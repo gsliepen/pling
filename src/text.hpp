@@ -3,22 +3,18 @@
 #pragma once
 
 #include <algorithm>
+#include <glm/glm.hpp>
 #include <map>
 #include <string>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_opengles2.h>
 
+#include "shader.hpp"
+
+namespace Text {
+
 class Font {
 	public:
-	class Manager {
-		std::map<std::pair<std::string, int>, Font> fonts;
-
-		public:
-		Manager();
-		~Manager();
-		Font *get(const std::string &name, int size);
-	};
-
 	private:
 	TTF_Font *font{};
 
@@ -32,7 +28,34 @@ class Font {
 	SDL_Surface *render(const std::string &text, SDL_Color color);
 };
 
-class Text {
+class Manager {
+	std::map<std::pair<std::string, int>, Font> fonts;
+
+	ShaderProgram program;
+	float scale_x;
+	float scale_y;
+	GLint attrib_coord;
+	GLint uniform_tex;
+
+	glm::vec2 scale;
+
+	public:
+	Manager();
+	~Manager();
+	Font *get_font(const std::string &name, int size);
+	void prepare_render(int screen_w, int screen_h);
+
+	glm::vec2 get_scale() {
+		return scale;
+	};
+
+	GLint get_attrib_coord() {
+		return attrib_coord;
+	}
+};
+
+class Widget {
+	Manager &manager;
 	GLuint texture;
 
 	bool dirty;
@@ -46,21 +69,14 @@ class Text {
 	Font *font{};
 	SDL_Color color{255, 255, 255, 255};
 
-	static GLuint program;
-	static float scale_x;
-	static float scale_y;
-	static GLint attrib_coord;
-	static GLint uniform_tex;
-
 	public:
-	Text();
-	~Text();
-	void set_font(Font::Manager &manager, const std::string &name, int size);
+	Widget(Manager &manager);
+	~Widget();
+	void set_font(const std::string &name, int size);
 	void set_text(const std::string &new_text);
 	void set_position(float x, float y, float align_x = 0, float align_y = 0);
 	void set_color(SDL_Color color);
 	void render();
-
-	static void init();
-	static void prepare_render(int w, int h);
 };
+
+}

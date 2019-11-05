@@ -102,12 +102,12 @@ void Widget::render(int screen_w, int screen_h) {
 	const auto signal_width = samples.size();
 
 	const float center = crossing / signal_width;
-	const float left = center - 0.5 * w / signal_width;
-	const float right = center + 0.5 * w / signal_width;
+	const float left = center - 0.5 * texture_w / signal_width;
+	const float right = center + 0.5 * texture_w / signal_width;
 
 	/* Update only the visible part of the texture */
 	glBindTexture(GL_TEXTURE_2D, texture);
-	const size_t visible_width = w + 32;
+	const size_t visible_width = texture_w + 32;
 	const size_t visible_offset = (lrintf(crossing - visible_width / 2) % signal_width) & ~7;
 
 	if (visible_offset + visible_width <= signal_width) {

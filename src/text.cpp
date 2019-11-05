@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
 
+namespace Text {
+
 Font::Font(const std::string &name, int size) {
 	font = TTF_OpenFont(name.c_str(), size);
 
@@ -20,87 +22,6 @@ Font::Font(Font &&other)
 }
 
 Font::~Font() {
-}
-
-Font::Manager::Manager() {
-	TTF_Init();
-}
-
-Font::Manager::~Manager() {
-	fonts.clear();
-	TTF_Quit();
-}
-
-Font *Font::Manager::get(const std::string &name, int size) {
-	const auto key = std::make_pair(name, size);
-
-	if (auto it = fonts.find(key); it != fonts.end())
-		return &it->second;
-	else
-		return &fonts.emplace(key, Font(name, size)).first->second;
-}
-
-SDL_Surface *Font::render(const std::string &text, SDL_Color color) {
-	return TTF_RenderUTF8_Blended(font, text.c_str(), color);
-}
-
-Text::Text() {
-}
-
-Text::~Text() {
-}
-
-void Text::set_font(Font::Manager &manager, const std::string &name, int size) {
-	font = manager.get(name, size);
-	dirty = true;
-	glGenTextures(1, &texture);
-}
-
-void Text::set_text(const std::string &text) {
-	this->text = text;
-	dirty = true;
-}
-
-void Text::set_position(float x, float y, float align_x, float align_y) {
-	this->x = x;
-	this->y = y;
-}
-
-void Text::set_color(SDL_Color color) {
-	this->color = color;
-	dirty = true;
-}
-
-void Text::render() {
-	if (!font)
-		return;
-
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	if (dirty) {
-		auto surface = font->render(text.c_str(), color);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		w = surface->w;
-		h = surface->h;
-		dirty = false;
-
-		SDL_FreeSurface(surface);
-	}
-
-	glm::vec4 rect[4] = {
-		{x * scale_x - 1,       1 - y * scale_y,       0, 0},
-		{(x + w) * scale_x - 1, 1 - y * scale_y,       1, 0},
-		{x * scale_x - 1,       1 - (y + h) * scale_y, 0, 1},
-		{(x + w) * scale_x - 1, 1 - (y + h) * scale_y, 1, 1},
-	};
-
-	glVertexAttribPointer(attrib_coord, 4, GL_FLOAT, GL_FALSE, 0, rect);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 static const GLchar *vertex_shader_source = R"(
@@ -127,35 +48,30 @@ void main(void) {
 }
 )";
 
-GLuint Text::program;
-float Text::scale_x;
-float Text::scale_y;
-GLint Text::attrib_coord;
-GLint Text::uniform_tex;
 
-void Text::init() {
-	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
-	glCompileShader(vertex_shader);
+Manager::Manager(): program(vertex_shader_source, fragment_shader_source) {
+	attrib_coord = program.get_attrib("coord");
+	uniform_tex = program.get_uniform("tex");
 
-	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
-	glCompileShader(fragment_shader);
-
-	program = glCreateProgram();
-	glAttachShader(program, vertex_shader);
-	glAttachShader(program, fragment_shader);
-	glLinkProgram(program);
-
-	attrib_coord = glGetAttribLocation(program, "coord");
-	uniform_tex = glGetUniformLocation(program, "tex");
+	TTF_Init();
 }
 
-void Text::prepare_render(int w, int h) {
-	scale_x = 2.0 / w;
-	scale_y = 2.0 / h;
+Manager::~Manager() {
+	fonts.clear();
+	TTF_Quit();
+}
 
-	glUseProgram(program);
+Font *Manager::get_font(const std::string &name, int size) {
+	const auto key = std::make_pair(name, size);
+
+	if (auto it = fonts.find(key); it != fonts.end())
+		return &it->second;
+	else
+		return &fonts.emplace(key, Font(name, size)).first->second;
+}
+
+void Manager::prepare_render(int screen_w, int screen_h) {
+	program.use();
 	glEnable(GL_BLEND);
 	glEnable(GL_TEXTURE_2D);
 	glDisable(GL_CULL_FACE);
@@ -163,4 +79,73 @@ void Text::prepare_render(int w, int h) {
 	glEnableVertexAttribArray(attrib_coord);
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(uniform_tex, 0);
+
+	scale = glm::vec2(2.0 / screen_w, 2.0 / screen_h);
+}
+
+SDL_Surface *Font::render(const std::string &text, SDL_Color color) {
+	return TTF_RenderUTF8_Blended(font, text.c_str(), color);
+}
+
+Widget::Widget(Manager &manager): manager(manager) {
+}
+
+Widget::~Widget() {
+}
+
+void Widget::set_font(const std::string &name, int size) {
+	font = manager.get_font(name, size);
+	dirty = true;
+	glGenTextures(1, &texture);
+}
+
+void Widget::set_text(const std::string &text) {
+	this->text = text;
+	dirty = true;
+}
+
+void Widget::set_position(float x, float y, float align_x, float align_y) {
+	this->x = x;
+	this->y = y;
+}
+
+void Widget::set_color(SDL_Color color) {
+	this->color = color;
+	dirty = true;
+}
+
+void Widget::render() {
+	if (!font)
+		return;
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	if (dirty) {
+		auto surface = font->render(text.c_str(), color);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		w = surface->w;
+		h = surface->h;
+		dirty = false;
+
+		SDL_FreeSurface(surface);
+	}
+
+	const auto scale = manager.get_scale();
+
+	glm::vec4 rect[4] = {
+		{x * scale.x - 1,       1 - y * scale.y,       0, 0},
+		{(x + w) * scale.x - 1, 1 - y * scale.y,       1, 0},
+		{x * scale.x - 1,       1 - (y + h) * scale.y, 0, 1},
+		{(x + w) * scale.x - 1, 1 - (y + h) * scale.y, 1, 1},
+	};
+
+	glVertexAttribPointer(manager.get_attrib_coord(), 4, GL_FLOAT, GL_FALSE, 0, rect);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
 }

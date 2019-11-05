@@ -8,6 +8,7 @@ executable('pling',
 	'simple.cpp',
 	'spectrum.cpp',
 	'text.cpp',
+	'ui.cpp',
 	dependencies: [
 		alsa,
 		fftw3f,

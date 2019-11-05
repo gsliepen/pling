@@ -40,6 +40,8 @@ class Widget {
 	float w{};
 	float h{};
 
+	int texture_w{768};
+
 	const Signal &signal;
 	ShaderProgram program;
 	GLint attrib_coord;

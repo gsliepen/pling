@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengles2.h>
 #include <set>
 #include <thread>
 
@@ -17,74 +16,11 @@
 #include "simple.hpp"
 #include "spectrum.hpp"
 #include "text.hpp"
+#include "ui.hpp"
 
-static Font::Manager font_manager;
-static Text text;
 static Oscilloscope::Signal osc_signal;
 static Spectrum::Signal spectrum_signal;
-
-Simple program;
-
-static bool handle_events() {
-	for (SDL_Event ev; SDL_PollEvent(&ev);) {
-		switch (ev.type) {
-		case SDL_QUIT:
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static void render(Oscilloscope::Widget &oscilloscope) {
-	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-	Text::prepare_render(800, 480);
-	text.render();
-	oscilloscope.render(800, 480);
-}
-
-static void ui() {
-	uint32_t window_flags = SDL_WINDOW_OPENGL;
-
-	SDL_DisplayMode desktop_mode;
-	SDL_GetDesktopDisplayMode(0, &desktop_mode);
-
-	if(desktop_mode.w == 800 && desktop_mode.h == 480)
-		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-
-	auto window = SDL_CreateWindow("Pling", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 480, window_flags);
-
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetSwapInterval(1);
-	auto context = SDL_GL_CreateContext(window);
-
-	Text::init();
-	text.set_font(font_manager, "/usr/share/fonts/truetype/freefont/FreeSans.ttf", 12);
-	text.set_text("Pling!");
-	text.set_position(16, 16);
-
-	Oscilloscope::Widget oscilloscope(osc_signal);
-	oscilloscope.set_position(16, 336, 768, 128);
-
-	Spectrum::Widget spectrum(spectrum_signal);
-	spectrum.set_position(16, 192, 768, 128);
-
-	/* Early write out of FFTW wisdom */
-	fftwf_export_wisdom_to_filename("pling.wisdom");
-
-	while (handle_events()) {
-		render(oscilloscope);
-		spectrum.render(800, 480);
-		SDL_GL_SwapWindow(window);
-	}
-
-	SDL_GL_DeleteContext(context);
-	SDL_DestroyWindow(window);
-}
+static Simple program;
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	static Chunk chunk;
@@ -268,9 +204,12 @@ int main(int argc, char *args[]) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	fftwf_import_wisdom_from_filename("pling.wisdom");
 
+	UI ui(osc_signal, spectrum_signal);
+
 	audio();
 	std::thread midi_thread(midi);
-	ui();
+
+	ui.run();
 
 	fftwf_export_wisdom_to_filename("pling.wisdom");
 	SDL_Quit();
