@@ -10,7 +10,7 @@
 
 void Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	for (auto &sample: chunk.samples) {
-		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr, on) * (1 - (lfo * 0.5 + 0.5) * params.mod));
+		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo * 0.5 + 0.5) * params.mod));
 		++lfo;
 		osc.update(params.bend);
 	}
@@ -21,12 +21,11 @@ void Simple::Voice::init(uint8_t key, float freq, float amp) {
 	osc.init(freq);
 	this->amp = amp;
 	this->key = key;
-	on = true;
 	adsr.init();
 }
 
 void Simple::Voice::release() {
-	on = false;
+	adsr.release();
 }
 
 float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params) {

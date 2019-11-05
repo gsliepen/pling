@@ -5,28 +5,64 @@
 
 namespace Envelope {
 
-float ADSR::update(Parameters &param, bool on) {
-	const float dt = 1.0 / sample_rate;
+float ExponentialADSR::update(Parameters &param) {
+	switch(state) {
+	case State::off:
+		amplitude = 0;
+		break;
 
-	if (t < 0)
-		return 0;
+	case State::attack:
+		amplitude += param.attack;
+		if (amplitude >= 1) {
+			amplitude = 1;
+			state = State::decay;
+		}
+		break;
 
-	t += dt;
+	case State::decay:
+		amplitude = param.sustain + (amplitude - param.sustain) * param.decay;
+		break;
 
-	if (on) {
-		if (t < param.attack) {
-			amplitude = t / param.attack;
-		} else if (t < param.attack + param.decay) {
-			amplitude = 1 - (1 - param.sustain) * (t - param.attack) / param.decay;
-		} else {
+	case State::release:
+		amplitude *= param.release;
+		if (amplitude < cutoff) {
+			amplitude = 0;
+			state = State::off;
+		}
+		break;
+	}
+
+	return amplitude;
+}
+
+float LinearADSR::update(Parameters &param) {
+	switch(state) {
+	case State::off:
+		amplitude = 0;
+		break;
+
+	case State::attack:
+		amplitude += param.attack;
+		if (amplitude >= 1) {
+			amplitude = 1;
+			state = State::decay;
+		}
+		break;
+
+	case State::decay:
+		amplitude -= param.decay;
+		if (amplitude < param.sustain) {
 			amplitude = param.sustain;
 		}
-	} else {
-		amplitude -= dt / (param.release * param.sustain);
-		if (amplitude < 0) {
+		break;
+
+	case State::release:
+		amplitude -= param.release;
+		if (amplitude < cutoff) {
 			amplitude = 0;
-			t = -1;
+			state = State::off;
 		}
+		break;
 	}
 
 	return amplitude;

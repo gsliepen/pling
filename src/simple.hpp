@@ -16,7 +16,7 @@ class Simple: public Program {
 	struct Parameters {
 		float bend{1};
 		float mod{0};
-		Envelope::ADSR::Parameters adsr{0.1, 0.5, 0.5, 1.0};
+		Envelope::ExponentialADSR::Parameters adsr{};
 		Filter::Biquad::Parameters biquad{};
 		Filter::Biquad::Parameters::Type type{};
 		Filter::StateVariable::Parameters svf{};
@@ -32,7 +32,7 @@ class Simple: public Program {
 		float amp;
 		uint8_t key;
 		bool on;
-		Envelope::ADSR adsr;
+		Envelope::ExponentialADSR adsr;
 		Filter::Biquad biquad;
 		Filter::StateVariable svf;
 
