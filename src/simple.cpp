@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "pling.hpp"
+#include "utils.hpp"
 
 void Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	for (auto &sample: chunk.samples) {
@@ -73,41 +74,41 @@ void Simple::poly_pressure(uint8_t key, uint8_t pressure) {}
 void Simple::control_change(uint8_t control, uint8_t val) {
 	switch(control) {
 	case 1:
-		params.mod = val / 127.0;
+		params.mod = cc_linear(val, 0, 1);
 		break;
 	case 3:
 	case 38:
-		params.adsr.attack = val ? powf(2.0, (val - 64.0) / 16.0) : 0;
+		params.adsr.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
 	case 4:
 	case 39:
-		params.adsr.decay = val ? powf(2.0, (val - 64.0) / 16.0) : 0;
+		params.adsr.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
 	case 5:
 	case 40:
-		params.adsr.sustain = val ? powf(2.0, (val - 127.0) / 16.0) : 0;
+		params.adsr.set_sustain(cc_exponential(val, 0, 1e-2, 1, 1));
 		break;
 	case 6:
 	case 41:
-		params.adsr.release = val ? powf(2.0, (val - 64.0) / 16.0) : 0;
+		params.adsr.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
 	case 14:
 	case 60:
-		params.freq = sample_rate / 4 * powf(2.0, (val - 128.0) / 16.0);
+		params.freq = cc_exponential(val, 0, 1, 1e4, sample_rate / 4);
 		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 15:
 	case 61:
-		params.Q = val ? powf(2.0, (val - 64.0) / 16.0) : 0;
+		params.Q = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
 		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 16:
 	case 62:
-		params.gain = (val - 64.0) / 4.0;
+		params.gain = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
 		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
@@ -115,11 +116,11 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 
 	case 17:
 	case 63:
-		params.type = static_cast<Filter::Biquad::Parameters::Type>(val % 7);
-		params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(val % 4);
+		params.type = static_cast<Filter::Biquad::Parameters::Type>(cc_select(val, 7));
+		params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 4));
 		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {} {} {}\n", params.freq, params.Q, params.gain, val % 7, val % 4);
+		fmt::print(std::cerr, "{} {} {} {} {}\n", params.freq, params.Q, params.gain, (int)params.type, (int)params.svf_type);
 		break;
 
 	case 64:
