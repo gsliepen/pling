@@ -34,11 +34,14 @@ static const GLchar *vertex_shader_source = R"(
 #version 100
 
 attribute vec4 coord;
-varying vec2 texpos;
+varying vec2 texpos1;
+varying vec2 texpos2;
+uniform float dx;
 
 void main(void) {
-	gl_Position = vec4(coord.xy, 0, 1);
-	texpos = coord.zw;
+	gl_Position = vec4(coord.xy, 0.0, 1.0);
+	texpos1 = coord.zw;
+	texpos2 = coord.zw - vec2(dx, 0.0);
 }
 )";
 
@@ -46,17 +49,21 @@ static const GLchar *fragment_shader_source = R"(
 #version 100
 precision mediump float;
 
-varying vec2 texpos;
+varying vec2 texpos1;
+varying vec2 texpos2;
 uniform sampler2D tex;
+uniform float beam_width;
 
 void main(void) {
-	float prev = texture2D(tex, texpos - vec2(1.0 / 2048.0, 0.0)).r;
-	float value = texture2D(tex, texpos).r;
-	float avg = (prev + value) / 2.0;
-	float diff = abs(prev - value);
-	float intensity = 1.0 - smoothstep(abs(texpos.y - avg), 0.0, diff * 0.25 + 0.002);
-	intensity *= 1.0 / (1.0 + diff * 16.0);
-	gl_FragColor = vec4(intensity, intensity + 0.2, intensity, 1.0);
+	float val1 = texture2D(tex, texpos1).r;
+	float val2 = texture2D(tex, texpos2).r;
+	float minval = min(val1, val2);
+	float maxval = max(val1, val2);
+
+	float intensity = smoothstep(minval - beam_width, minval, texpos1.y) * smoothstep(maxval + beam_width, maxval, texpos1.y);
+	intensity /= 1.0 + (maxval - minval) / beam_width;
+
+	gl_FragColor = vec4(intensity, intensity + 0.125, intensity, 1.0);
 }
 )";
 
@@ -71,6 +78,8 @@ Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_sour
 
 	attrib_coord = program.get_attrib("coord");
 	uniform_tex = program.get_uniform("tex");
+	uniform_beam_width = program.get_uniform("beam_width");
+	uniform_dx = program.get_uniform("dx");
 }
 
 Widget::~Widget() {
@@ -95,6 +104,7 @@ void Widget::render(int screen_w, int screen_h) {
 	glEnableVertexAttribArray(attrib_coord);
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(uniform_tex, 0);
+	glUniform1f(uniform_beam_width, 2.0 / h);
 
 	/* Align such that we have a zero phase crossing at the center */
 	const auto crossing = signal.get_crossing();
@@ -106,6 +116,7 @@ void Widget::render(int screen_w, int screen_h) {
 	const float right = center + 0.5 * texture_w / signal_width;
 
 	/* Update only the visible part of the texture */
+	glUniform1f(uniform_dx, 1.0 * texture_w / signal_width / w);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	const size_t visible_width = texture_w + 32;
 	const size_t visible_offset = (lrintf(crossing - visible_width / 2) % signal_width) & ~7;

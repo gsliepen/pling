@@ -35,11 +35,14 @@ static const GLchar *vertex_shader_source = R"(
 #version 100
 
 attribute vec4 coord;
-varying vec2 texpos;
+varying vec2 texpos1;
+varying vec2 texpos2;
+uniform float dx;
 
 void main(void) {
-	gl_Position = vec4(coord.xy, 0, 1);
-	texpos = coord.zw;
+	gl_Position = vec4(coord.xy, 0.0, 1.0);
+	texpos1 = coord.zw;
+	texpos2 = coord.zw - vec2(dx, 0.0);
 }
 )";
 
@@ -47,17 +50,21 @@ static const GLchar *fragment_shader_source = R"(
 #version 100
 precision mediump float;
 
-varying vec2 texpos;
+varying vec2 texpos1;
+varying vec2 texpos2;
 uniform sampler2D tex;
+uniform float beam_width;
 
 void main(void) {
-	float prev = texture2D(tex, texpos - vec2(1.0 / 768.0, 0.0)).r;
-	float value = texture2D(tex, texpos).r;
-	float avg = (prev + value) / 2.0;
-	float diff = abs(prev - value);
-	float intensity = 1.0 - smoothstep(abs(texpos.y - avg), 0.0, diff * 0.25 + 0.002);
-	intensity *= 1.0 / (1.0 + diff * 16.0);
-	gl_FragColor = vec4(intensity, intensity + 0.2, intensity, 1.0);
+	float val1 = texture2D(tex, texpos1).r;
+	float val2 = texture2D(tex, texpos2).r;
+	float minval = min(val1, val2);
+	float maxval = max(val1, val2);
+
+	float intensity = smoothstep(minval - beam_width, minval, texpos1.y) * smoothstep(maxval + beam_width, maxval, texpos1.y);
+	intensity /= 1.0 + (maxval - minval) / beam_width;
+
+	gl_FragColor = vec4(intensity, intensity + 0.125, intensity, 1.0);
 }
 )";
 
@@ -77,11 +84,12 @@ Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_sour
 
 	attrib_coord = program.get_attrib("coord");
 	uniform_tex = program.get_uniform("tex");
+	uniform_beam_width = program.get_uniform("beam_width");
+	uniform_dx = program.get_uniform("dx");
 
 	/* Initialize a Hann window, see https://en.wikipedia.org/wiki/Hann_function */
 	for (size_t i = 0; i < fft_size; ++i) {
-		const float f = float(i) / fft_size;
-		window[i] = 0.5 - 0.5 * cos(2 * M_PI * f);
+		window[i] = 0.5 - 0.5 * cos(2 * M_PI * i / fft_size);
 	}
 }
 
@@ -109,6 +117,7 @@ void Widget::render(int screen_w, int screen_h) {
 	glEnableVertexAttribArray(attrib_coord);
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(uniform_tex, 0);
+	glUniform1f(uniform_beam_width, 2.0 / h);
 
 	/* Copy the latest audio data into the input buffer */
 	const auto &samples = signal.get_samples();
@@ -136,7 +145,7 @@ void Widget::render(int screen_w, int screen_h) {
 
 		/* Interpolate between FFT samples */
 		const float fr = u_in * (fft_size / 2) - i_in;
-		const float value0 = log10(abs(output[i_in])/ fft_size * 4);
+		const float value0 = log10(abs(output[i_in]) / fft_size * 4);
 		const float value1 = log10(abs(output[i_in + 1]) / fft_size * 4);
 		const float dB = 20 * glm::mix(value0, value1, fr);
 		const float value = 1 + (dB - 10) / 60; // -40..10 dB range
@@ -145,6 +154,7 @@ void Widget::render(int screen_w, int screen_h) {
 	}
 
 	/* Draw the spectrum */
+	glUniform1f(uniform_dx, 1.0 / w);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spectrum.size(), 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, spectrum.data());
 

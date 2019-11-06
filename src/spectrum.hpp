@@ -45,6 +45,8 @@ class Widget {
 	ShaderProgram program;
 	GLint attrib_coord;
 	GLint uniform_tex;
+	GLint uniform_beam_width;
+	GLint uniform_dx;
 
 	static const size_t fft_size = 8192;
 	fftwf_plan plan;

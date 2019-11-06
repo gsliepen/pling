@@ -46,6 +46,8 @@ class Widget {
 	ShaderProgram program;
 	GLint attrib_coord;
 	GLint uniform_tex;
+	GLint uniform_beam_width;
+	GLint uniform_dx;
 
 	public:
 	Widget(const Signal &signal);
