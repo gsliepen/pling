@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-#include "filter.hpp"
+#include "biquad.hpp"
+#include "../pling.hpp"
 
 #include <cmath>
-
-#include "pling.hpp"
 
 namespace Filter {
 
@@ -106,13 +105,6 @@ void Biquad::Parameters::set(Type type, float freq, float Q, float gain) {
 	}
 
 	return;
-}
-
-void StateVariable::Parameters::set(Type type, float freq, float Q) {
-	this->type = type;
-	this->f = freq / sample_rate * 4;
-	this->q = 1 - 2 * atanf(sqrtf(Q)) / M_PI;
-	this->sqrt_q = sqrtf(q);
 }
 
 }

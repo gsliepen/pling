@@ -10,13 +10,12 @@
 #include <set>
 #include <thread>
 
-#include "envelope.hpp"
 #include "midi.hpp"
-#include "oscilloscope.hpp"
-#include "simple.hpp"
-#include "spectrum.hpp"
+#include "programs/simple.hpp"
 #include "text.hpp"
 #include "ui.hpp"
+#include "widgets/oscilloscope.hpp"
+#include "widgets/spectrum.hpp"
 
 static Oscilloscope::Signal osc_signal;
 static Spectrum::Signal spectrum_signal;

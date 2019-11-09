@@ -4,9 +4,9 @@
 
 #include <SDL2/SDL.h>
 
-#include "oscilloscope.hpp"
-#include "spectrum.hpp"
 #include "text.hpp"
+#include "widgets/oscilloscope.hpp"
+#include "widgets/spectrum.hpp"
 
 class UI {
 	int w = 800;

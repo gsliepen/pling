@@ -11,7 +11,7 @@
 
 void Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	for (auto &sample: chunk.samples) {
-		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo * 0.5 + 0.5) * params.mod));
+		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo.sine() * 0.5 + 0.5) * params.mod));
 		++lfo;
 		osc.update(params.bend);
 	}
@@ -95,32 +95,27 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 	case 14:
 	case 60:
 		params.freq = cc_exponential(val, 0, 1, 1e4, sample_rate / 4);
-		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 15:
 	case 61:
 		params.Q = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
-		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 16:
 	case 62:
 		params.gain = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
-		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 
 	case 17:
 	case 63:
-		params.type = static_cast<Filter::Biquad::Parameters::Type>(cc_select(val, 7));
 		params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 4));
-		params.biquad.set(params.type, params.freq, params.Q, params.gain);
 		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {} {} {}\n", params.freq, params.Q, params.gain, (int)params.type, (int)params.svf_type);
+		fmt::print(std::cerr, "{} {} {} {}\n", params.freq, params.Q, params.gain, (int)params.svf_type);
 		break;
 
 	case 64:

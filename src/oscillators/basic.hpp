@@ -3,19 +3,20 @@
 #pragma once
 
 #include <cmath>
-#include <glm/glm.hpp>
 
-#include "pling.hpp"
+#include "../pling.hpp"
 
-class Oscillator {
+namespace Oscillator {
+
+class Basic {
 	private:
 	float delta{};
 	float phase{};
 
 	public:
-	Oscillator() = default;
+	Basic() = default;
 
-	Oscillator(float freq) {
+	Basic(float freq) {
 		init(freq);
 	}
 
@@ -26,18 +27,15 @@ class Oscillator {
 
 	void update() {
 		phase += delta;
-		if (phase >= 1)
-			phase -= 1;
+		phase -= floorf(phase);
 	};
 
 	void update(float bend) {
 		phase += delta * bend;
-		if (phase >= 1) {
-			phase -= 1;
-		}
+		phase -= floorf(phase);
 	};
 
-	float get() {
+	float sine() {
 		return sinf(phase * 2 * M_PI);
 	}
 
@@ -45,13 +43,21 @@ class Oscillator {
 		return phase < 0.5 ? 1 : -1;
 	}
 
-	Oscillator &operator++() {
+	float saw() {
+		return phase < 0.5 ? phase * 2 : phase * 2 - 2;
+	}
+
+	float triangle() {
+		return phase < 0.25 ? phase * 4 : phase < 0.75 ? 2 - phase * 4 : phase * 4 - 4;
+	}
+
+	Basic &operator++() {
 		update();
 		return *this;
 	}
 
 	operator float() {
-		return get();
+		return phase;
 	}
 
 	float get_zero_crossing(float offset, float bend = 1.0) {
@@ -59,7 +65,9 @@ class Oscillator {
 		 * return the first zero crossing of the phase of this oscillator. */
 
 		float phase_at_offset = phase + offset * delta * bend;
-		return offset - glm::fract(phase_at_offset) / (delta * bend);
+		phase_at_offset -= floorf(phase_at_offset);
+		return offset - phase_at_offset / (delta * bend);
 	}
 };
 
+}

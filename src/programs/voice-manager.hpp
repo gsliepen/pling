@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "pling.hpp"
+#include "../pling.hpp"
 
 /**
  * A manager for a fixed number of polyphonic voices.
@@ -224,16 +224,4 @@ class VoiceManager {
 	 * @return An iterator to the end of the active voices.
 	 */
 	Iterator end() { return Iterator(*this, false); }
-};
-
-class Program {
-	public:
-	virtual ~Program() {};
-	virtual void render(Chunk &chunk, float &zero_crossing) {};
-	virtual void note_on(uint8_t key, uint8_t vel) {};
-	virtual void note_off(uint8_t key, uint8_t vel) {};
-	virtual void pitch_bend(int16_t bend) {};
-	virtual void channel_pressure(int8_t pressure) {};
-	virtual void poly_pressure(uint8_t key, uint8_t pressure) {};
-	virtual void control_change(uint8_t control, uint8_t val) {};
 };

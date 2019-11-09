@@ -5,20 +5,18 @@
 #include <cstdint>
 #include <vector>
 
-#include "envelope.hpp"
-#include "filter.hpp"
-#include "oscillator.hpp"
 #include "voice-manager.hpp"
-
-class Chunk;
+#include "../envelopes/exponential-adsr.hpp"
+#include "../filters/state-variable.hpp"
+#include "../oscillators/basic.hpp"
+#include "../pling.hpp"
+#include "../program.hpp"
 
 class Simple: public Program {
 	struct Parameters {
 		float bend{1};
 		float mod{0};
 		Envelope::ExponentialADSR::Parameters adsr{};
-		Filter::Biquad::Parameters biquad{};
-		Filter::Biquad::Parameters::Type type{};
 		Filter::StateVariable::Parameters svf{};
 		Filter::StateVariable::Parameters::Type svf_type{};
 		float freq{sample_rate / 4};
@@ -27,13 +25,12 @@ class Simple: public Program {
 	};
 
 	struct Voice {
-		Oscillator osc;
-		Oscillator lfo{10};
+		Oscillator::Basic osc;
+		Oscillator::Basic lfo{10};
 		float amp;
 		uint8_t key;
 		bool on;
 		Envelope::ExponentialADSR adsr;
-		Filter::Biquad biquad;
 		Filter::StateVariable svf;
 
 		void init(uint8_t key, float freq, float vel);
