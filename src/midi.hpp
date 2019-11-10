@@ -3,47 +3,72 @@
 #pragma once
 
 #include <alsa/asoundlib.h>
+#include <deque>
 #include <functional>
 #include <list>
+#include <memory>
 #include <poll.h>
 #include <string>
+#include <thread>
 #include <vector>
 
+#include "program-manager.hpp"
+
 namespace MIDI {
-	class Port {
-		friend class Manager;
 
-		snd_rawmidi_t *in{};
-		snd_rawmidi_t *out{};
+/**
+ * The state for a MIDI channel.
+ */
+struct Channel {
+	std::shared_ptr<Program> program;
 
-		public:
-		Port(const snd_rawmidi_info_t *info, bool open_in, bool open_out);
-		~Port();
+	struct {
+		uint8_t vel{};
+	} keys[128]{};
+};
 
-		Port(const Port &other) = delete;
-		Port(Port &&other) {
-			in = other.in;
-			out = other.out;
-			other.in = nullptr;
-			other.out = nullptr;
-		}
-		Port &operator=(const Port &other) = delete;
+/**
+ * A MIDI port.
+ */
+class Port {
+	friend class Manager;
 
-		const std::string name;
-	};
+	snd_rawmidi_t *in{};
+	snd_rawmidi_t *out{};
 
-	class Manager {
-		std::vector<Port> ports;
-		std::vector<struct pollfd> pfds;
+	Channel channels[16];
 
-		public:
-		Manager();
-		~Manager();
+	public:
+	Port(const snd_rawmidi_info_t *info, bool open_in, bool open_out);
+	~Port();
 
-		Manager(const Manager &other) = delete;
-		Manager(Manager &&other) = delete;
-		Manager &operator=(const Manager &other) = delete;
+	Port(const Port &other) = delete;
+	Port(Port &&other) = delete;
+	Port &operator=(const Port &other) = delete;
 
-		void process_events(std::function<void(Port &port, uint8_t *data, ssize_t len)> callback);
-	};
+	const std::string name;
+};
+
+/**
+ * The manager for all MIDI state.
+ */
+class Manager {
+	ProgramManager &programs;
+	std::deque<Port> ports;
+	std::vector<struct pollfd> pfds;
+	std::thread thread;
+	int pipe_fds[2];
+
+	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
+	void process_events();
+
+	public:
+	Manager(ProgramManager &programs);
+	~Manager();
+
+	Manager(const Manager &other) = delete;
+	Manager(Manager &&other) = delete;
+	Manager &operator=(const Manager &other) = delete;
+};
+
 }

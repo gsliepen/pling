@@ -9,12 +9,14 @@
 #include "pling.hpp"
 #include "utils.hpp"
 
-void Simple::Voice::render(Chunk &chunk, Parameters &params) {
+bool Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	for (auto &sample: chunk.samples) {
 		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo.sine() * 0.5 + 0.5) * params.mod));
 		++lfo;
 		osc.update(params.bend);
 	}
+
+	return adsr.is_active();
 }
 
 void Simple::Voice::init(uint8_t key, float freq, float amp) {
@@ -33,12 +35,14 @@ float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params)
 	return osc.get_zero_crossing(offset, params.bend);
 }
 
-void Simple::render(Chunk &chunk) {
-	chunk.clear();
+bool Simple::render(Chunk &chunk) {
+	bool active = false;
 
 	for(auto &voice: voices) {
-		voice.render(chunk, params);
+		active |= voice.render(chunk, params);
 	}
+
+	return active;
 }
 
 float Simple::get_zero_crossing(float offset) {
@@ -126,4 +130,8 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 		fmt::print(std::cerr, "{} {}\n", control, val);
 		break;
 	}
+}
+
+void Simple::release_all() {
+	voices.release_all();
 }

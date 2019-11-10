@@ -8,7 +8,10 @@ class Program {
 	public:
 	virtual ~Program() {};
 
-	virtual void render(Chunk &chunk) {};
+	virtual bool render(Chunk &chunk) {
+		return false;
+	};
+
 	virtual float get_zero_crossing(float offset) {
 		return offset;
 	};
@@ -19,4 +22,5 @@ class Program {
 	virtual void channel_pressure(int8_t pressure) {};
 	virtual void poly_pressure(uint8_t key, uint8_t pressure) {};
 	virtual void control_change(uint8_t control, uint8_t val) {};
+	virtual void release_all() {};
 };

@@ -145,6 +145,13 @@ class VoiceManager {
 	}
 
 	/**
+	 * Release all voices.
+	 */
+	void release_all() {
+
+	}
+
+	/**
 	 * Enable or disable sustain.
 	 *
 	 * @param sustain  True if sustain should be on, false if off.
