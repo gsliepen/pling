@@ -3,32 +3,94 @@
 #include "midi.hpp"
 
 #include <fmt/format.h>
+#include <fstream>
 #include <stdexcept>
 #include <unistd.h>
 
 namespace MIDI {
 
-Port::Port(const snd_rawmidi_info_t *info, bool open_in, bool open_out):
-	name(snd_rawmidi_info_get_subdevice_name(info))
-{
-	int card = snd_rawmidi_info_get_card(info);
-	int device = snd_rawmidi_info_get_device(info);
-	int sub = snd_rawmidi_info_get_subdevice(info);
-	auto hw_name = fmt::format("hw:{},{},{}", card, device, sub);
-
-	if (int err = snd_rawmidi_open(open_in ? &in : nullptr, open_out ? &out: nullptr, hw_name.c_str(), SND_RAWMIDI_NONBLOCK); err < 0)
-		throw std::runtime_error(snd_strerror(err));
+Port::Port(const snd_rawmidi_info_t *info) {
+	open(info);
 }
 
 Port::~Port() {
-	if (in)
-		snd_rawmidi_close(in);
+	close();
+}
+
+void Port::open(const snd_rawmidi_info_t *info) {
+	card = snd_rawmidi_info_get_card(info);
+	device = snd_rawmidi_info_get_device(info);
+	sub = snd_rawmidi_info_get_subdevice(info);
+
+	auto hw_name = fmt::format("hw:{},{},{}", card, device, sub);
+
+	name = snd_rawmidi_info_get_subdevice_name(info);
+
+	auto filename = fmt::format("/proc/asound/card{}/usbid", card);
+	std::ifstream usbid_file(filename);
+
+	std::string line;
+	if (std::getline(usbid_file, line)) {
+		hwid = line;
+	}
+
+	if (int err = snd_rawmidi_open(&in, nullptr, hw_name.c_str(), SND_RAWMIDI_NONBLOCK); err < 0) {
+		return;
+	}
+
+	snd_rawmidi_drain(in);
+
+	// Try to open the output fd, but it's fine if there is none.
+	snd_rawmidi_open(nullptr, &out, hw_name.c_str(), SND_RAWMIDI_NONBLOCK);
+}
+
+bool Port::is_match(const snd_rawmidi_info_t *info) {
+	int card = snd_rawmidi_info_get_card(info);
+
+	if (name != snd_rawmidi_info_get_subdevice_name(info))
+		return false;
+
+	auto filename = fmt::format("/proc/asound/card{}/usbid", card);
+	std::ifstream usbid_file(filename);
+
+	std::string line;
+	if (std::getline(usbid_file, line)) {
+		if (line == hwid)
+			return true;
+	}
+
+	return false;
+}
+
+void Port::close() {
+	snd_rawmidi_close(in);
 
 	if (out)
 		snd_rawmidi_close(out);
+
+	in = {};
+	out = {};
+	card = -1;
+	device = -1;
+	sub = -1;
 }
 
 Manager::Manager(ProgramManager &programs): programs(programs) {
+	// Add a self-pipe.
+	if (pipe(pipe_fds))
+		throw std::runtime_error("Could not create pipe");
+
+	pfds.emplace_back();
+	auto &pfd = pfds.back();
+	pfd.fd = pipe_fds[0];
+	pfd.events = POLLIN | POLLERR | POLLHUP;
+
+	scan_ports();
+
+	thread = std::thread(&Manager::process_events, this);
+}
+
+void Manager::scan_ports() {
 	snd_rawmidi_info_t *info;
 
 	if (int err = snd_rawmidi_info_malloc(&info); err < 0)
@@ -48,29 +110,55 @@ Manager::Manager(ProgramManager &programs): programs(programs) {
 			snd_ctl_rawmidi_info(ctl, info);
 			int subs_in = snd_rawmidi_info_get_subdevices_count(info);
 
-			snd_rawmidi_info_set_stream(info, SND_RAWMIDI_STREAM_OUTPUT);
-			snd_ctl_rawmidi_info(ctl, info);
-			int subs_out = snd_rawmidi_info_get_subdevices_count(info);
+			// Ignore MIDI devices that don't send data to us
+			if (!subs_in)
+				continue;
 
-			int subs = std::max(subs_in, subs_out);
-
-			for (int sub = 0; sub < subs; sub++) {
-				snd_rawmidi_info_set_stream(info, sub < subs_in ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
+			for (int sub = 0; sub < subs_in; sub++) {
 				snd_rawmidi_info_set_subdevice(info, sub);
 
 				if (snd_ctl_rawmidi_info(ctl, info) < 0)
 					continue;
 
-				Port &port = ports.emplace_back(info, sub < subs_in, sub < subs_out);
+				bool found = false;
+
+				for (size_t i = 0; i < ports.size(); ++i) {
+					auto &port = ports[i];
+
+					if (port.card == card && port.device == device && port.sub == sub && port.is_open()) {
+						// We already have this exact port open, skip it.
+						found = true;
+						break;
+					}
+
+					if (port.is_open() || !port.is_match(info))
+						continue;
+
+					/* We found a matching, unused port.
+					 * Assume it's the same physical device, and just reopen it.
+					 */
+					port.open(info);
+
+					if(port.is_open())
+						snd_rawmidi_poll_descriptors(port.in, &pfds[i + 1], 1);
+
+					found = true;
+					break;
+				}
+
+				if (found)
+					continue;
+
+				Port &port = ports.emplace_back(info);
 
 				for(auto &channel: port.channels) {
 					channel.program = programs.activate(0);
 				}
 
-				if (sub < subs_in) {
-					pfds.emplace_back();
+				pfds.emplace_back();
+
+				if(ports.back().is_open())
 					snd_rawmidi_poll_descriptors(ports.back().in, &pfds.back(), 1);
-				}
 			}
 		}
 
@@ -78,17 +166,6 @@ Manager::Manager(ProgramManager &programs): programs(programs) {
 	}
 
 	snd_rawmidi_info_free(info);
-
-	// Add a self-pipe.
-	if (pipe(pipe_fds))
-		throw std::runtime_error("Could not create pipe");
-
-	pfds.emplace_back();
-	auto &pfd = pfds.back();
-	pfd.fd = pipe_fds[0];
-	pfd.events = POLLIN | POLLERR | POLLHUP;
-
-	thread = std::thread(&Manager::process_events, this);
 }
 
 Manager::~Manager() {
@@ -136,14 +213,11 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		program->poly_pressure(data[1], data[2]);
 		break;
 	case 0xb:
-		fprintf(stderr, "Control change for %p", (void *)program);
 		program->control_change(data[1], data[2]);
 		break;
 	case 0xc:
 		// program change
-		fprintf(stderr, "Program change from %p", (void *)channel.program.get());
 		programs.change(channel.program, data[1]);
-		fprintf(stderr, " to %p\n", (void *)channel.program.get());
 		break;
 	case 0xd:
 		program->channel_pressure(data[1]);
@@ -198,35 +272,43 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 
 void Manager::process_events() {
 	while (true) {
-		auto err = poll(&pfds[0], pfds.size(), -1);
+		auto result = poll(&pfds[0], pfds.size(), 1000);
 		uint8_t buf[128];
 
-		if (err < 0)
+		if (result < 0)
 			throw std::runtime_error(strerror(errno));
 
-		if (err == 0)
-			throw std::runtime_error("poll() returned 0");
+		if (result == 0) {
+			scan_ports();
+			continue;
+		}
 
-		for (size_t i = 0; i < pfds.size(); ++i) {
+		// First fd is the self-pipe, if anything happens on it we quit this thread.
+		if (pfds[0].revents) {
+			break;
+		}
+
+		for (size_t i = 1; i < pfds.size(); ++i) {
 			auto revents = pfds[i].revents;
+			auto &port = ports[i - 1];
 
-			if (revents & (POLLERR | POLLHUP))
-				throw std::runtime_error(strerror(errno));
+			if (revents & (POLLERR | POLLHUP)) {
+				port.close();
+				pfds[i].fd = -1;
+			}
 
 			if (revents & POLLIN) {
-				if (i + 1 == pfds.size()) {
-					return;
+				auto len = snd_rawmidi_read(port.in, buf, sizeof buf);
+
+				if (len < 0) {
+					port.close();
+					pfds[i].fd = -1;
 				}
-
-				auto len = snd_rawmidi_read(ports[i].in, buf, sizeof buf);
-
-				if (len < 0)
-					throw std::runtime_error(snd_strerror(err));
 
 				// TODO: split into individual MIDI commands
 
 				if (len > 0)
-					process_midi_command(ports[i], buf, len);
+					process_midi_command(port, buf, len);
 			}
 		}
 	}

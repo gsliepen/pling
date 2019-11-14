@@ -36,17 +36,29 @@ class Port {
 	snd_rawmidi_t *in{};
 	snd_rawmidi_t *out{};
 
+	int card{-1};
+	int device{-1};
+	int sub{-1};
+	std::string name;
+	std::string hwid;
+
 	Channel channels[16];
 
 	public:
-	Port(const snd_rawmidi_info_t *info, bool open_in, bool open_out);
+	Port(const snd_rawmidi_info_t *info);
 	~Port();
 
 	Port(const Port &other) = delete;
 	Port(Port &&other) = delete;
 	Port &operator=(const Port &other) = delete;
 
-	const std::string name;
+	void close();
+	void open(const snd_rawmidi_info_t *info);
+	bool is_match(const snd_rawmidi_info_t *info);
+
+	bool is_open() {
+		return in;
+	}
 };
 
 /**
@@ -61,6 +73,7 @@ class Manager {
 
 	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
 	void process_events();
+	void scan_ports();
 
 	public:
 	Manager(ProgramManager &programs);
