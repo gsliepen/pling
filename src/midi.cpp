@@ -124,6 +124,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 	// ----------------------
 	case 0x8:
 		program->note_off(data[1], data[2]);
+		break;
 	case 0x9:
 		if (data[2]) {
 			program->note_on(data[1], data[2]);
