@@ -7,28 +7,9 @@
 #include <glm/glm.hpp>
 #include <stdexcept>
 
-#include "shader.hpp"
+#include "../shader.hpp"
 
-namespace Oscilloscope {
-
-Signal::Signal() {
-	samples.resize(2048);
-}
-
-Signal::~Signal() {
-}
-
-void Signal::add(const Chunk &chunk, float zero_crossing) {
-	assert(pos + chunk.samples.size() <= samples.size());
-
-	for(size_t i = 0; i < chunk.samples.size(); ++i) {
-		float val = glm::clamp(chunk.samples[i] * 128.f, -128.f, 127.f) + 128;
-		samples[pos++] = lrint(val);
-	}
-	best_crossing = zero_crossing + pos;
-
-	pos %= samples.size();
-}
+namespace Widgets {
 
 static const GLchar *vertex_shader_source = R"(
 #version 100
@@ -67,14 +48,16 @@ void main(void) {
 }
 )";
 
-Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
+Oscilloscope::Oscilloscope(const RingBuffer &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
+	scope.resize(768);
+
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, signal.get_samples().size(), 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, signal.get_samples().data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, scope.size(), 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	attrib_coord = program.get_attrib("coord");
 	uniform_tex = program.get_uniform("tex");
@@ -82,18 +65,11 @@ Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_sour
 	uniform_dx = program.get_uniform("dx");
 }
 
-Widget::~Widget() {
+Oscilloscope::~Oscilloscope() {
 	glDeleteTextures(1, &texture);
 }
 
-void Widget::set_position(float x, float y, float w, float h) {
-	this->x = x;
-	this->y = y;
-	this->w = w;
-	this->h = h;
-}
-
-void Widget::render(int screen_w, int screen_h) {
+void Oscilloscope::render(int screen_w, int screen_h) {
 	const float scale_x = 2.0 / screen_w;
 	const float scale_y = 2.0 / screen_h;
 
@@ -107,33 +83,32 @@ void Widget::render(int screen_w, int screen_h) {
 	glUniform1f(uniform_beam_width, 2.0 / h);
 
 	/* Align such that we have a zero phase crossing at the center */
-	const auto crossing = signal.get_crossing();
+	auto crossing = signal.get_crossing();
 	const auto &samples = signal.get_samples();
-	const auto signal_width = samples.size();
 
-	const float center = crossing / signal_width;
-	const float left = center - 0.5 * texture_w / signal_width;
-	const float right = center + 0.5 * texture_w / signal_width;
+	if (crossing < 0)
+		crossing += samples.size();
 
-	/* Update only the visible part of the texture */
-	glUniform1f(uniform_dx, 1.0 * texture_w / signal_width / w);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	const size_t visible_width = texture_w + 32;
-	const size_t visible_offset = (lrintf(crossing - visible_width / 2) % signal_width) & ~7;
+	size_t crossing_sample = lrintf(crossing);
+	float nudge = (crossing - crossing_sample) / scope.size();
 
-	if (visible_offset + visible_width <= signal_width) {
-		glTexSubImage2D(GL_TEXTURE_2D, 0, visible_offset, 0, visible_width, 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, samples.data() + visible_offset);
-	} else {
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, visible_width + visible_offset - signal_width, 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, samples.data());
-		glTexSubImage2D(GL_TEXTURE_2D, 0, visible_offset, 0, signal_width - visible_offset, 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, samples.data() + visible_offset);
+	size_t pos = crossing_sample - scope.size() / 2;
+
+	for (size_t i = 0; i < scope.size(); ++i) {
+		const float value = samples[pos++ % samples.size()] * 127.0f + 128.0f;
+		scope[i] = lrintf(glm::clamp(value, 0.0f, 255.0f));
 	}
 
 	/* Draw the oscilloscope */
+	glUniform1f(uniform_dx, 1.0 / w);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, scope.size(), 1, GL_LUMINANCE, GL_UNSIGNED_BYTE, scope.data());
+
 	glm::vec4 rect[4] = {
-		{x * scale_x - 1,       1 - y * scale_y,       left, 1},
-		{(x + w) * scale_x - 1, 1 - y * scale_y,       right, 1},
-		{x * scale_x - 1,       1 - (y + h) * scale_y, left, 0},
-		{(x + w) * scale_x - 1, 1 - (y + h) * scale_y, right, 0},
+		{x * scale_x - 1,       1 - y * scale_y,       0 + nudge, 1},
+		{(x + w) * scale_x - 1, 1 - y * scale_y,       1 + nudge, 1},
+		{x * scale_x - 1,       1 - (y + h) * scale_y, 0 + nudge, 0},
+		{(x + w) * scale_x - 1, 1 - (y + h) * scale_y, 1 + nudge, 0},
 	};
 
 	glVertexAttribPointer(attrib_coord, 4, GL_FLOAT, GL_FALSE, 0, rect);

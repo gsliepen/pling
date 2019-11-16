@@ -23,8 +23,8 @@ class UI {
 
 	Text::Manager text_manager;
 	Text::Widget text{text_manager};
-	Oscilloscope::Widget oscilloscope;
-	Spectrum::Widget spectrum;
+	Widgets::Oscilloscope oscilloscope;
+	Widgets::Spectrum spectrum;
 
 	void resize(int w, int h);
 	void process_window_event(const SDL_WindowEvent &ev);
@@ -32,7 +32,7 @@ class UI {
 	void render();
 
 	public:
-	UI(Oscilloscope::Signal &osc_signal, Spectrum::Signal &spectrum_signal);
+	UI(RingBuffer &signal);
 	~UI();
 	void run();
 };

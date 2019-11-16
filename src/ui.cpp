@@ -38,7 +38,7 @@ UI::Window::~Window() {
 	}
 }
 
-UI::UI(Oscilloscope::Signal &osc_signal, Spectrum::Signal &spectrum_signal): oscilloscope(osc_signal), spectrum(spectrum_signal) {
+UI::UI(RingBuffer &signal): oscilloscope(signal), spectrum(signal) {
 	text.set_text("Pling!");
 
 	resize(w, h);

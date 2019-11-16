@@ -11,25 +11,7 @@
 
 #include "shader.hpp"
 
-namespace Spectrum {
-
-Signal::Signal() {
-	samples.resize(16384);
-}
-
-Signal::~Signal() {
-}
-
-void Signal::add(const Chunk &chunk) {
-	assert(pos + chunk.samples.size() <= samples.size());
-
-	for(size_t i = 0; i < chunk.samples.size(); ++i) {
-		samples[pos++] = chunk.samples[i];
-	}
-
-	pos %= samples.size();
-	tail = pos;
-}
+namespace Widgets {
 
 static const GLchar *vertex_shader_source = R"(
 #version 100
@@ -68,7 +50,7 @@ void main(void) {
 }
 )";
 
-Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
+Spectrum::Spectrum(const RingBuffer &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
 	input.resize(fft_size + 2);
 	window.resize(fft_size);
 	spectrum.resize(768);
@@ -76,7 +58,7 @@ Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_sour
 
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, spectrum.size(), 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, spectrum.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, spectrum.size(), 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -93,20 +75,13 @@ Widget::Widget(const Signal &signal): signal(signal), program(vertex_shader_sour
 	}
 }
 
-Widget::~Widget() {
+Spectrum::~Spectrum() {
 	glDeleteTextures(1, &texture);
 
 	fftwf_destroy_plan(plan);
 }
 
-void Widget::set_position(float x, float y, float w, float h) {
-	this->x = x;
-	this->y = y;
-	this->w = w;
-	this->h = h;
-}
-
-void Widget::render(int screen_w, int screen_h) {
+void Spectrum::render(int screen_w, int screen_h) {
 	const float scale_x = 2.0 / screen_w;
 	const float scale_y = 2.0 / screen_h;
 
