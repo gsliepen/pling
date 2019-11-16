@@ -36,19 +36,27 @@ class Basic {
 	};
 
 	float sine() {
-		return sinf(phase * 2 * M_PI);
+		return sinf(phase * float(2 * M_PI));
+	}
+
+	float fast_sine() {
+		// Approximation of a sine using a parabola, without using branches.
+		const float x1 = phase - 0.5f;
+		const float x2 = fabsf(x1) * 4.0f - 1.0f;
+		const float v = 1.0f - x2 * x2;
+		return copysignf(v, x1);
 	}
 
 	float square() {
-		return phase < 0.5 ? 1 : -1;
+		return rintf(phase) * -2.0f + 1.0f;
 	}
 
 	float saw() {
-		return phase < 0.5 ? phase * 2 : phase * 2 - 2;
+		return phase * -2.0f + 1.0f;
 	}
 
 	float triangle() {
-		return phase < 0.25 ? phase * 4 : phase < 0.75 ? 2 - phase * 4 : phase * 4 - 4;
+		return fabsf(phase - 0.5f) * 4.0f - 1.0f;
 	}
 
 	Basic &operator++() {

@@ -11,7 +11,7 @@
 
 bool Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	for (auto &sample: chunk.samples) {
-		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo.sine() * 0.5 + 0.5) * params.mod));
+		sample += svf(params.svf, osc.square() * amp * adsr.update(params.adsr) * (1 - (lfo.fast_sine() * 0.5 + 0.5) * params.mod));
 		++lfo;
 		osc.update(params.bend);
 	}
