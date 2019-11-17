@@ -11,7 +11,6 @@
 
 #include "midi.hpp"
 #include "program-manager.hpp"
-#include "text.hpp"
 #include "ui.hpp"
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"

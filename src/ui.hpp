@@ -4,7 +4,6 @@
 
 #include <SDL2/SDL.h>
 
-#include "text.hpp"
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
@@ -21,14 +20,13 @@ class UI {
 		~Window();
 	} window{w, h};
 
-	Text::Manager text_manager;
-	Text::Widget text{text_manager};
 	Widgets::Oscilloscope oscilloscope;
 	Widgets::Spectrum spectrum;
 
 	void resize(int w, int h);
 	void process_window_event(const SDL_WindowEvent &ev);
 	bool process_events();
+	void build();
 	void render();
 
 	public:
