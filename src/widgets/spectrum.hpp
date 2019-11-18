@@ -17,7 +17,7 @@ namespace Widgets {
 class Spectrum: public Widget {
 	GLuint texture;
 
-	const RingBuffer &signal;
+	const RingBuffer &ringbuffer;
 	ShaderProgram program;
 	GLint attrib_coord;
 	GLint uniform_tex;
@@ -31,7 +31,7 @@ class Spectrum: public Widget {
 	std::vector<uint8_t> spectrum;
 
 	public:
-	Spectrum(const RingBuffer &signal);
+	Spectrum(const RingBuffer &ringbuffer);
 	virtual ~Spectrum() final;
 	virtual void render(int screen_w, int screen_h) final;
 };

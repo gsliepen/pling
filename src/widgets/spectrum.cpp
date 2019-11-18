@@ -50,7 +50,7 @@ void main(void) {
 }
 )";
 
-Spectrum::Spectrum(const RingBuffer &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
+Spectrum::Spectrum(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), program(vertex_shader_source, fragment_shader_source) {
 	input.resize(fft_size + 2);
 	window.resize(fft_size);
 	spectrum.resize(768);
@@ -95,9 +95,9 @@ void Spectrum::render(int screen_w, int screen_h) {
 	glUniform1f(uniform_beam_width, 2.0 / h);
 
 	/* Copy the latest audio data into the input buffer */
-	const auto &samples = signal.get_samples();
+	const auto &samples = ringbuffer.get_samples();
 	const size_t n = samples.size();
-	size_t j = (signal.get_tail() - fft_size) % n;
+	size_t j = (ringbuffer.get_tail() - fft_size) % n;
 
 	for (size_t i = 0; i < fft_size; ++i) {
 		input[i] = window[i] * samples[(j++ % n)];

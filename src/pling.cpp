@@ -15,7 +15,7 @@
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
-static RingBuffer signal{16384};
+static RingBuffer ringbuffer{16384};
 static ProgramManager programs;
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
@@ -25,7 +25,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	programs.render(chunk);
 
 	/* Add the samples to the oscilloscope */
-	signal.add(chunk, programs.get_zero_crossing(-384));
+	ringbuffer.add(chunk, programs.get_zero_crossing(-384));
 
 	/* Convert to 16-bit signed stereo */
 	int nsamples = len / 4;
@@ -59,7 +59,7 @@ int main(int argc, char *args[]) {
 	setup_audio();
 
 	fftwf_import_wisdom_from_filename("pling.wisdom");
-	UI ui(signal);
+	UI ui(ringbuffer);
 
 	MIDI::Manager midi_manager(programs);
 

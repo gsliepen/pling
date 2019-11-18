@@ -30,7 +30,7 @@ class UI {
 	void render();
 
 	public:
-	UI(RingBuffer &signal);
+	UI(RingBuffer &ringbuffer);
 	~UI();
 	void run();
 };

@@ -15,7 +15,7 @@ namespace Widgets {
 class Oscilloscope: public Widget {
 	GLuint texture;
 
-	const RingBuffer &signal;
+	const RingBuffer &ringbuffer;
 	ShaderProgram program;
 	GLint attrib_coord;
 	GLint uniform_tex;
@@ -25,7 +25,7 @@ class Oscilloscope: public Widget {
 	std::vector<uint8_t> scope;
 
 	public:
-	Oscilloscope(const RingBuffer &signal);
+	Oscilloscope(const RingBuffer &ringbuffer);
 	virtual ~Oscilloscope() final;
 	virtual void render(int screen_w, int screen_h) final;
 };

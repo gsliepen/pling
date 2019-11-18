@@ -48,7 +48,7 @@ void main(void) {
 }
 )";
 
-Oscilloscope::Oscilloscope(const RingBuffer &signal): signal(signal), program(vertex_shader_source, fragment_shader_source) {
+Oscilloscope::Oscilloscope(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), program(vertex_shader_source, fragment_shader_source) {
 	scope.resize(768);
 
 	glGenTextures(1, &texture);
@@ -83,8 +83,8 @@ void Oscilloscope::render(int screen_w, int screen_h) {
 	glUniform1f(uniform_beam_width, 2.0 / h);
 
 	/* Align such that we have a zero phase crossing at the center */
-	auto crossing = signal.get_crossing();
-	const auto &samples = signal.get_samples();
+	auto crossing = ringbuffer.get_crossing();
+	const auto &samples = ringbuffer.get_samples();
 
 	if (crossing < 0)
 		crossing += samples.size();

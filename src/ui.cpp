@@ -50,7 +50,7 @@ UI::Window::~Window() {
 	}
 }
 
-UI::UI(RingBuffer &signal): oscilloscope(signal), spectrum(signal) {
+UI::UI(RingBuffer &ringbuffer): oscilloscope(ringbuffer), spectrum(ringbuffer) {
 	// Initialize IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
