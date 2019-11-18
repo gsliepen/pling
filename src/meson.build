@@ -27,6 +27,7 @@ executable('pling',
 	cpp_args: [
 		'-DGL_GLEXT_PROTOTYPES=1',
 		'-DIMGUI_IMPL_OPENGL_ES2',
+		'-DIMGUI_IMPL_OPENGL_LOADER_CUSTOM',
 	],
 	include_directories: [
 		imgui_incdir,
