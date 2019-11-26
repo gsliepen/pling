@@ -3,10 +3,12 @@
 
 #include "ui.hpp"
 
+#include <glm/glm.hpp>
 #include "imgui/imgui.h"
 #include "imgui/examples/imgui_impl_sdl.h"
 #include "imgui/examples/imgui_impl_opengl3.h"
 
+#include <fmt/format.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
@@ -50,7 +52,7 @@ UI::Window::~Window() {
 	}
 }
 
-UI::UI(RingBuffer &ringbuffer): oscilloscope(ringbuffer), spectrum(ringbuffer) {
+UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer), spectrum(ringbuffer) {
 	// Initialize IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -59,7 +61,15 @@ UI::UI(RingBuffer &ringbuffer): oscilloscope(ringbuffer), spectrum(ringbuffer) {
 	ImGui_ImplOpenGL3_Init("#version 100");
 
 	ImGuiIO &io = ImGui::GetIO();
-	io.Fonts->AddFontDefault();
+	normal_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 13.0f);
+	big_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 26.0f);
+
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+	ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4{0.5f, 1.0f, 0.5f, 0.5f});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, {0.5f, 0.5f});
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, {1});
 
 	resize(w, h);
 
@@ -76,11 +86,6 @@ UI::~UI() {
 void UI::resize(int w, int h) {
 	this->w = w;
 	this->h = h;
-	glViewport(0, 0, w, h);
-
-	/* Reposition the widgets */
-	spectrum.set_position(16, 1 * (h / 3) + 16, w - 32, h / 3 - 32);
-	oscilloscope.set_position(16, 2 * (h / 3) + 16, w - 32, h / 3 - 32);
 }
 
 void UI::process_window_event(const SDL_WindowEvent &ev) {
@@ -122,21 +127,117 @@ void UI::build() {
 	ImGui_ImplSDL2_NewFrame(window.window);
 	ImGui::NewFrame();
 
-	ImGui::Begin("Pling!");
-	{
-		ImGui::Text("Pling pling!!!");
-		if(ImGui::Button("Button"))
-			abort();
+	const auto borderless = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
+	const auto childflags = (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings;
+
+	// Create a fullscreen window
+	ImGui::SetNextWindowPos({0.0f, 0.0f});
+	ImGui::SetNextWindowSize({float(w), float(h)});
+	ImGui::Begin("fullscreen", {}, borderless);
+
+	// Add manually positioned child windows for the 16 pixel edge decorations
+	ImGui::SetNextWindowPos({16.0f, 0.0f});
+	ImGui::BeginChild("top", {1.0f * w - 32.0f, 16.0f}, false);
+	ImGui::Text("Pling!");
+	ImGui::SameLine();
+	ImGui::Text("100%%");
+	ImGui::EndChild();
+
+	float dB = 20 * log10f(ringbuffer.get_rms()); // dB
+
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(glm::clamp(dB, 0.0f, 1.0f), 0.0f, 0.0f, 1.0f));
+
+	ImGui::SetNextWindowPos({0.0f, 16.0f});
+	ImGui::BeginChild("left", {16.0f, h - 32.0f}, false);
+	ImGui::VSliderFloat("left amp", {16.0f, h - 32.0f}, &dB, -40.0f, 10.0f, "L");
+	ImGui::EndChild();
+
+	ImGui::SetNextWindowPos({w - 16.0f, 16.0f});
+	ImGui::BeginChild("right", {16.0f, h - 32.0f}, false);
+	ImGui::VSliderFloat("right amp", {16.0f, h - 32.0f}, &dB, -40.0f, 10.0f, "R");
+	ImGui::EndChild();
+
+	ImGui::PopStyleColor();
+
+	ImGui::SetNextWindowPos({16.0f, h - 16.0f});
+	ImGui::BeginChild("bottom", {1.0f * w - 32.0f, 16.0f}, false);
+	ImGui::Text("Active keys");
+	ImGui::SameLine();
+	ImGui::Text("etc");
+	ImGui::EndChild();
+
+	// Use a 2x3 grid for the remaining area
+	float gw = (w - 32.0f) / 2.0f;
+	float gh = (h - 32.0f) / 3.0f;
+
+	// Main program window
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.0f, 1.0f, 1.0f, 0.1f});
+	ImGui::SetNextWindowPos({16.0f, 16.0f});
+	ImGui::SetNextWindowSize({gw, gh});
+	ImGui::Begin("Main program", {}, childflags);
+	static const char *items[] = {
+		"000: Accoustic Grand Piano",
+		"001: Bright Accoustic Piano",
+		"002: Electric Grand Piano",
+		"...",
+	};
+	ImGui::Selectable("Controller: MIDI Controler 1  Channel: 01");
+	ImGui::PushFont(big_font);
+	static int cur = 0;
+	if(ImGui::Selectable(items[cur]))
+		ImGui::OpenPopup("Instrument");
+	ImGui::PopFont();
+	if(ImGui::BeginPopup("Instrument")) {
+		ImGui::Text("Choose an instrument:");
+		ImGui::Combo("instrument", &cur, items, 3);
+		ImGui::EndPopup();
 	}
+	ImGui::Text("Synth: Simple");
+	ImGui::Separator();
+	ImGui::Selectable("Track: 01  Pattern: 01  Beat: 4/4  Tempo: 120");
+	ImGui::PushFont(big_font);
+	ImGui::Selectable("00:00:00");
+	ImGui::PopFont();
 	ImGui::End();
+	ImGui::PopStyleColor();
+
+	// Main buttons
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{1.0f, 0.0f, 1.0f, 0.1f});
+	ImGui::SetNextWindowPos({16.0f + gw, 16.0f});
+	ImGui::SetNextWindowSize({gw, gh});
+	ImGui::Begin("Buttons", {}, childflags);
+	auto size = ImGui::GetContentRegionAvail();
+	ImVec2 button_size = {size.x / 3, size.y / 2};
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0f, 0.0f});
+	ImGui::PushFont(big_font);
+	ImGui::Button("Learn", button_size); ImGui::SameLine();
+	ImGui::Button("Load", button_size); ImGui::SameLine();
+	ImGui::Button("Save", button_size);
+	ImGui::Button("Panic", button_size); ImGui::SameLine();
+	ImGui::Button("Controls", button_size); ImGui::SameLine();
+	ImGui::Button("Transport", button_size);
+	ImGui::PopFont();
+	ImGui::PopStyleVar();
+	ImGui::End();
+	ImGui::PopStyleColor();
+	ImGui::End();
+
+	// Oscilloscope window
+	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
+	ImGui::SetNextWindowSize({gw * 2.0f, gh});
+	oscilloscope.build(w, h);
+
+	// Spectrum analyzer window
+	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 2.0f});
+	ImGui::SetNextWindowSize({gw * 2.0f, gh});
+	spectrum.build(w, h);
+
 	ImGui::Render();
 }
 
 void UI::render() {
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
-	oscilloscope.render(w, h);
-	spectrum.render(w, h);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	SDL_GL_SwapWindow(window.window);
 }

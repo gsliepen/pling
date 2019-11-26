@@ -4,6 +4,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "imgui/imgui.h"
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
@@ -20,8 +21,12 @@ class UI {
 		~Window();
 	} window{w, h};
 
+	RingBuffer &ringbuffer;
 	Widgets::Oscilloscope oscilloscope;
 	Widgets::Spectrum spectrum;
+
+	ImFont *normal_font{};
+	ImFont *big_font{};
 
 	void resize(int w, int h);
 	void process_window_event(const SDL_WindowEvent &ev);

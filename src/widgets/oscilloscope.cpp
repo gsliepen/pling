@@ -75,8 +75,8 @@ void Oscilloscope::render(int screen_w, int screen_h) {
 
 	program.use();
 	glDisable(GL_BLEND);
-	glEnable(GL_TEXTURE_2D);
-	glDisable(GL_CULL_FACE);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glEnableVertexAttribArray(attrib_coord);
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(uniform_tex, 0);
@@ -113,6 +113,33 @@ void Oscilloscope::render(int screen_w, int screen_h) {
 
 	glVertexAttribPointer(attrib_coord, 4, GL_FLOAT, GL_FALSE, 0, rect);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void Oscilloscope::render_callback(const ImDrawList* parent_list, const ImDrawCmd* cmd) {
+	auto this_ = (Oscilloscope *)cmd->UserCallbackData;
+	this_->render(this_->screen_w, this_->screen_h);
+}
+
+void Oscilloscope::build(int screen_w, int screen_h) {
+	ImGui::Begin("Oscilloscope", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+
+	/* Remember the window position and size for the callback */
+	auto widget_pos = ImGui::GetCursorScreenPos();
+	auto region_min = ImGui::GetWindowContentRegionMin();
+	auto region_max = ImGui::GetWindowContentRegionMax();
+
+	x = widget_pos.x;
+	y = widget_pos.y;
+	w = region_max.x - region_min.x;
+	h = region_max.y - region_min.y;
+
+	this->screen_w = screen_w;
+	this->screen_h = screen_h;
+
+	ImGui::GetWindowDrawList()->AddCallback(render_callback, this);
+	ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+
+	ImGui::End();
 }
 
 }

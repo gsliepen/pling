@@ -46,7 +46,7 @@ void main(void) {
 	float intensity = smoothstep(minval - beam_width, minval, texpos1.y) * smoothstep(maxval + beam_width, maxval, texpos1.y);
 	intensity /= 1.0 + (maxval - minval) / beam_width;
 
-	gl_FragColor = vec4(intensity, intensity + 0.125, intensity, 1.0);
+	gl_FragColor = vec4(intensity, intensity, intensity + 0.125, 1.0);
 }
 )";
 
@@ -87,30 +87,18 @@ void Spectrum::render(int screen_w, int screen_h) {
 
 	program.use();
 	glDisable(GL_BLEND);
-	glEnable(GL_TEXTURE_2D);
-	glDisable(GL_CULL_FACE);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glEnableVertexAttribArray(attrib_coord);
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(uniform_tex, 0);
 	glUniform1f(uniform_beam_width, 2.0 / h);
 
-	/* Copy the latest audio data into the input buffer */
-	const auto &samples = ringbuffer.get_samples();
-	const size_t n = samples.size();
-	size_t j = (ringbuffer.get_tail() - fft_size) % n;
-
-	for (size_t i = 0; i < fft_size; ++i) {
-		input[i] = window[i] * samples[(j++ % n)];
-	}
-
-	fftwf_execute(plan);
-
 	const auto output = reinterpret_cast<std::complex<float> *>(input.data());
 
 	/* Build a texture from the FFT result */
-	const float low = 27.5; // frequency of lowest note
-	const float range = 88.0 / 12.0; // octaves
-	const float x1 = low / 24000.0;
+	const float range = log2(max_freq / min_freq);
+	const float x1 = min_freq / (sample_rate / 2);
 
 	for (size_t i = 0; i < spectrum.size(); ++i) {
 		/* Calculate texture x position of input and output */
@@ -142,6 +130,44 @@ void Spectrum::render(int screen_w, int screen_h) {
 
 	glVertexAttribPointer(attrib_coord, 4, GL_FLOAT, GL_FALSE, 0, rect);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void Spectrum::render_callback(const ImDrawList* parent_list, const ImDrawCmd* cmd) {
+	auto this_ = (Spectrum *)cmd->UserCallbackData;
+	this_->render(this_->screen_w, this_->screen_h);
+}
+
+void Spectrum::build(int screen_w, int screen_h) {
+	/* Copy the latest audio data into the input buffer */
+	const auto &samples = ringbuffer.get_samples();
+	const size_t n = samples.size();
+	size_t j = (ringbuffer.get_tail() - fft_size) % n;
+
+	for (size_t i = 0; i < fft_size; ++i) {
+		input[i] = window[i] * samples[(j++ % n)];
+	}
+
+	fftwf_execute(plan);
+
+	ImGui::Begin("Spectrum analyzer", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+
+	/* Remember the window position and size for the callback */
+	auto widget_pos = ImGui::GetCursorScreenPos();
+	auto region_min = ImGui::GetWindowContentRegionMin();
+	auto region_max = ImGui::GetWindowContentRegionMax();
+
+	x = widget_pos.x;
+	y = widget_pos.y;
+	w = region_max.x - region_min.x;
+	h = region_max.y - region_min.y;
+
+	this->screen_w = screen_w;
+	this->screen_h = screen_h;
+
+	ImGui::GetWindowDrawList()->AddCallback(render_callback, this);
+	ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+
+	ImGui::End();
 }
 
 }

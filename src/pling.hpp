@@ -6,6 +6,7 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <vector>
 
@@ -24,6 +25,7 @@ class RingBuffer {
 	size_t pos{};
 	std::atomic<size_t> tail{};
 	std::atomic<float> best_crossing{};
+	std::atomic<float> avg_rms = 0;
 	std::vector<float> samples;
 
 	public:
@@ -32,15 +34,26 @@ class RingBuffer {
 	}
 
 	void add(const Chunk &chunk, float zero_crossing = 0) {
-		std::copy(chunk.samples.begin(), chunk.samples.end(), &samples[pos]);
-		pos += chunk_size;
+		float rms = 0;
+
+		for (size_t i = 0; i < chunk.samples.size(); ++i) {
+			rms += chunk.samples[i] * chunk.samples[i];
+			samples[pos++] = chunk.samples[i];
+		}
+
 		best_crossing = zero_crossing + pos;
 		pos %= samples.size();
 		tail = pos;
+		rms = sqrtf(rms) / 8.0f;
+		avg_rms = avg_rms * 0.95f + rms * 0.05f;
 	}
 
 	float get_crossing() const {
 		return best_crossing;
+	}
+
+	float get_rms() const {
+		return avg_rms;
 	}
 
 	const std::vector<float> &get_samples() const {
