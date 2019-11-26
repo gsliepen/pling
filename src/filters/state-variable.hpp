@@ -30,6 +30,10 @@ class StateVariable {
 			this->q = 1 - 2 / M_PI * atanf(sqrtf(Q));
 			this->sqrt_q = sqrtf(q);
 		}
+
+		void set_freq(float freq) {
+			this->f = freq / sample_rate * 4;
+		}
 	};
 
 	float filter(Parameters &params, float in) {
