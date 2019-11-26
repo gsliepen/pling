@@ -305,10 +305,18 @@ void Manager::process_events() {
 					pfds[i].fd = -1;
 				}
 
-				// TODO: split into individual MIDI commands
+				decltype(len) start = 0;
+				decltype(len) end;
 
-				if (len > 0)
-					process_midi_command(port, buf, len);
+				for(end = 1; end < len; end++) {
+					if(buf[end] & 0x80) {
+						process_midi_command(port, buf + start, end - start);
+						start = end;
+					}
+				}
+
+				if (start < len)
+					process_midi_command(port, buf + start, len - start);
 			}
 		}
 	}
