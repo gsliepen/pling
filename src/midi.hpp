@@ -56,6 +56,10 @@ class Port {
 	void open(const snd_rawmidi_info_t *info);
 	bool is_match(const snd_rawmidi_info_t *info);
 
+	std::string get_name() {
+		return name;
+	}
+
 	bool is_open() {
 		return in;
 	}
@@ -69,7 +73,7 @@ class Manager {
 	std::deque<Port> ports;
 	std::vector<struct pollfd> pfds;
 	std::thread thread;
-	int pipe_fds[2];
+	int pipe_fds[2]{-1, -1};
 
 	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
 	void process_events();

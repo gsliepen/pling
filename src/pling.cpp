@@ -12,11 +12,13 @@
 #include "midi.hpp"
 #include "program-manager.hpp"
 #include "ui.hpp"
+#include "view.hpp"
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
 static RingBuffer ringbuffer{16384};
 static ProgramManager programs;
+View view;
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	static Chunk chunk;
