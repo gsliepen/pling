@@ -44,7 +44,6 @@ void main(void) {
 	float maxval = max(val1, val2);
 
 	float intensity = smoothstep(minval - beam_width, minval, texpos1.y) * smoothstep(maxval + beam_width, maxval, texpos1.y);
-	intensity /= 1.0 + (maxval - minval) / beam_width;
 
 	gl_FragColor = vec4(intensity, intensity, intensity + 0.125, 1.0);
 }

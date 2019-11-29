@@ -31,6 +31,11 @@ class UI {
 	void resize(int w, int h);
 	void process_window_event(const SDL_WindowEvent &ev);
 	bool process_events();
+	void build_status_bar();
+	void build_volume_meters();
+	void build_key_bar();
+	void build_main_program();
+	void build_buttons();
 	void build();
 	void render();
 

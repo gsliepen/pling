@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 #include "imgui/examples/imgui_impl_sdl.h"
 #include "imgui/examples/imgui_impl_opengl3.h"
+#include "view.hpp"
 
 #include <fmt/format.h>
 #include <unistd.h>
@@ -122,76 +123,90 @@ bool UI::process_events() {
 	return true;
 }
 
-void UI::build() {
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplSDL2_NewFrame(window.window);
-	ImGui::NewFrame();
-
-	const auto borderless = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
-	const auto childflags = (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings;
-
-	// Create a fullscreen window
-	ImGui::SetNextWindowPos({0.0f, 0.0f});
-	ImGui::SetNextWindowSize({float(w), float(h)});
-	ImGui::Begin("fullscreen", {}, borderless);
-
-	// Add manually positioned child windows for the 16 pixel edge decorations
+void UI::build_status_bar() {
 	ImGui::SetNextWindowPos({16.0f, 0.0f});
-	ImGui::BeginChild("top", {1.0f * w - 32.0f, 16.0f}, false);
+	ImGui::BeginChild("status", {1.0f * w - 32.0f, 16.0f}, false);
 	ImGui::Text("Pling!");
 	ImGui::SameLine();
 	ImGui::Text("100%%");
 	ImGui::EndChild();
+}
 
+void UI::build_volume_meters() {
 	float dB = 20 * log10f(ringbuffer.get_rms()); // dB
 
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(glm::clamp(dB, 0.0f, 1.0f), 0.0f, 0.0f, 1.0f));
 
-	ImGui::SetNextWindowPos({0.0f, 16.0f});
-	ImGui::BeginChild("left", {16.0f, h - 32.0f}, false);
-	ImGui::VSliderFloat("left amp", {16.0f, h - 32.0f}, &dB, -40.0f, 10.0f, "L");
+	ImGui::SetNextWindowPos({0.0f, 0.0f});
+	ImGui::BeginChild("left", {16.0f, h}, false);
+	ImGui::VSliderFloat("left amp", {16.0f, h}, &dB, -40.0f, 10.0f, "L");
 	ImGui::EndChild();
 
-	ImGui::SetNextWindowPos({w - 16.0f, 16.0f});
-	ImGui::BeginChild("right", {16.0f, h - 32.0f}, false);
-	ImGui::VSliderFloat("right amp", {16.0f, h - 32.0f}, &dB, -40.0f, 10.0f, "R");
+	ImGui::SetNextWindowPos({w - 16.0f, 0.0f});
+	ImGui::BeginChild("right", {16.0f, h}, false);
+	ImGui::VSliderFloat("right amp", {16.0f, h}, &dB, -40.0f, 10.0f, "R");
 	ImGui::EndChild();
 
 	ImGui::PopStyleColor();
+}
 
-	ImGui::SetNextWindowPos({16.0f, h - 16.0f});
-	ImGui::BeginChild("bottom", {1.0f * w - 32.0f, 16.0f}, false);
-	ImGui::Text("Active keys");
-	ImGui::SameLine();
-	ImGui::Text("etc");
+void UI::build_key_bar() {
+	ImGui::SetNextWindowPos({0.0f, h - 16.0f});
+	ImGui::BeginChild("keys", {1.0f * w, 16.0f}, false);
+	auto draw_list = ImGui::GetWindowDrawList();
+	auto pos = ImGui::GetCursorScreenPos();
+	pos.x += 16.0f;
+	auto &keys = view.get_keys();
+	float key_size = (w - 32.0f) / 128.0f;
+	auto bent_pos = pos;
+	bent_pos.x += key_size * view.get_bend() / 4096.0f;
+
+	draw_list->AddRectFilled({0, 0}, {w, 16}, ImColor(128, 0, 0, 128));
+	for (uint8_t key = 0; key < 128; ++key) {
+		// Draw octave dividers
+		if (key && key % 12 == 0)
+			draw_list->AddLine({pos.x + key_size * (key + 0.5f), pos.y}, {pos.x + key_size * (key + 0.5f), pos.y + 16.0f}, ImColor(255, 255, 255, 128));
+
+		// Draw pressed keys
+		if (keys[key])
+			draw_list->AddRectFilled({bent_pos.x + key_size * key + 1.0f, pos.y + 16.0f}, {bent_pos.x + key_size * (key + 1), pos.y + 16.0f - keys[key] / 8.0f}, ImColor(255, 255, 255, 255));
+	}
+
 	ImGui::EndChild();
+}
 
-	// Use a 2x3 grid for the remaining area
-	float gw = (w - 32.0f) / 2.0f;
-	float gh = (h - 32.0f) / 3.0f;
-
-	// Main program window
+void UI::build_main_program() {
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.0f, 1.0f, 1.0f, 0.1f});
-	ImGui::SetNextWindowPos({16.0f, 16.0f});
-	ImGui::SetNextWindowSize({gw, gh});
-	ImGui::Begin("Main program", {}, childflags);
+	ImGui::Begin("Main program", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 	static const char *items[] = {
 		"000: Accoustic Grand Piano",
 		"001: Bright Accoustic Piano",
 		"002: Electric Grand Piano",
 		"...",
 	};
-	ImGui::Selectable("Controller: MIDI Controler 1  Channel: 01");
+
+	auto [port, channel] = view.get_active_channel();
+
+	if (port) {
+		ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str());
+	} else {
+		ImGui::Selectable("No controller found!");
+	}
+
 	ImGui::PushFont(big_font);
 	static int cur = 0;
+
 	if(ImGui::Selectable(items[cur]))
 		ImGui::OpenPopup("Instrument");
+
 	ImGui::PopFont();
+
 	if(ImGui::BeginPopup("Instrument")) {
 		ImGui::Text("Choose an instrument:");
 		ImGui::Combo("instrument", &cur, items, 3);
 		ImGui::EndPopup();
 	}
+
 	ImGui::Text("Synth: Simple");
 	ImGui::Separator();
 	ImGui::Selectable("Track: 01  Pattern: 01  Beat: 4/4  Tempo: 120");
@@ -200,12 +215,11 @@ void UI::build() {
 	ImGui::PopFont();
 	ImGui::End();
 	ImGui::PopStyleColor();
+}
 
-	// Main buttons
+void UI::build_buttons() {
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{1.0f, 0.0f, 1.0f, 0.1f});
-	ImGui::SetNextWindowPos({16.0f + gw, 16.0f});
-	ImGui::SetNextWindowSize({gw, gh});
-	ImGui::Begin("Buttons", {}, childflags);
+	ImGui::Begin("Buttons", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 	auto size = ImGui::GetContentRegionAvail();
 	ImVec2 button_size = {size.x / 3, size.y / 2};
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0f, 0.0f});
@@ -220,7 +234,36 @@ void UI::build() {
 	ImGui::PopStyleVar();
 	ImGui::End();
 	ImGui::PopStyleColor();
-	ImGui::End();
+}
+
+void UI::build() {
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplSDL2_NewFrame(window.window);
+	ImGui::NewFrame();
+
+	// Create a fullscreen window
+	ImGui::SetNextWindowPos({0.0f, 0.0f});
+	ImGui::SetNextWindowSize({float(w), float(h)});
+	ImGui::Begin("fullscreen", {}, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground);
+
+	// Add edge decorations
+	build_status_bar();
+	build_volume_meters();
+	build_key_bar();
+
+	// Use a 2x3 grid for the remaining area
+	float gw = (w - 32.0f) / 2.0f;
+	float gh = (h - 32.0f) / 3.0f;
+
+	// Main program window
+	ImGui::SetNextWindowPos({16.0f, 16.0f});
+	ImGui::SetNextWindowSize({gw, gh});
+	build_main_program();
+
+	// Main buttons
+	ImGui::SetNextWindowPos({16.0f + gw, 16.0f});
+	ImGui::SetNextWindowSize({gw, gh});
+	build_buttons();
 
 	// Oscilloscope window
 	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
@@ -232,6 +275,7 @@ void UI::build() {
 	ImGui::SetNextWindowSize({gw * 2.0f, gh});
 	spectrum.build(w, h);
 
+	ImGui::End();
 	ImGui::Render();
 }
 

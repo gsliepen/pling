@@ -33,8 +33,8 @@ class Spectrum {
 	float h;
 
 	static constexpr size_t fft_size = 8192;
-	static constexpr float min_freq = 20; //7.943049791;
-	static constexpr float max_freq = 48000 / 2; //12911.4169283;
+	static constexpr float min_freq = 7.943049791; // MIDI key 0
+	static constexpr float max_freq = 12911.4169283; // MIDI key 127
 
 	fftwf_plan plan;
 	std::vector<float> input;
