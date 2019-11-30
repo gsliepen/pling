@@ -148,7 +148,7 @@ void Spectrum::build(int screen_w, int screen_h) {
 
 	fftwf_execute(plan);
 
-	ImGui::Begin("Spectrum analyzer", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+	ImGui::Begin("Spectrum analyzer", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground);
 
 	/* Remember the window position and size for the callback */
 	auto widget_pos = ImGui::GetCursorScreenPos();

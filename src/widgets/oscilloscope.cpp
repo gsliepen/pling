@@ -121,7 +121,7 @@ void Oscilloscope::render_callback(const ImDrawList* parent_list, const ImDrawCm
 }
 
 void Oscilloscope::build(int screen_w, int screen_h) {
-	ImGui::Begin("Oscilloscope", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+	ImGui::Begin("Oscilloscope", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground);
 
 	/* Remember the window position and size for the callback */
 	auto widget_pos = ImGui::GetCursorScreenPos();
