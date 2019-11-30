@@ -9,15 +9,15 @@
 #include "widgets/spectrum.hpp"
 
 class UI {
-	int w = 800;
-	int h = 480;
+	float w = 800;
+	float h = 480;
 	bool paused{};
 
 	struct Window {
 		SDL_Window *window{};
 		SDL_GLContext gl_context;
 
-		Window(int w, int h);
+		Window(float w, float h);
 		~Window();
 	} window{w, h};
 

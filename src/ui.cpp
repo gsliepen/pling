@@ -14,7 +14,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
 
-UI::Window::Window(int w, int h) {
+UI::Window::Window(float w, float h) {
 	// Create the main SDL window
 	uint32_t window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 
