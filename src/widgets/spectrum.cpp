@@ -6,6 +6,7 @@
 #include <complex>
 #include <cstring>
 #include <fftw3.h>
+#include <fmt/format.h>
 #include <glm/glm.hpp>
 #include <stdexcept>
 
@@ -163,8 +164,31 @@ void Spectrum::build(int screen_w, int screen_h) {
 	this->screen_w = screen_w;
 	this->screen_h = screen_h;
 
-	ImGui::GetWindowDrawList()->AddCallback(render_callback, this);
-	ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+	/* Draw the spectrum curve */
+	auto list = ImGui::GetWindowDrawList();
+	list->AddCallback(render_callback, this);
+	list->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+
+	/* Draw the grid overlay */
+	for (int dB = -40; dB <= 10; dB += 10) {
+		float dBy = (10.0f - dB) / 50.0f * h;
+		list->AddLine({x, y + dBy}, {x + w, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 64 : 32));
+		list->AddText({x, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 128 : 64), fmt::format("{:+3d} dB", dB).c_str());
+	}
+
+	float key_size = w / 128.0f;
+	for (int key = 12; key < 128; key += 12) {
+		list->AddLine({x + key_size * (key + 0.5f), y}, {x + key_size * (key + 0.5f), y + h}, ImColor(255, 255, 255, key == 60 ? 64 : 32));
+		float freq = powf(2.0f, (key - 69.0f) / 12.0f) * 440.0f;
+		std::string text;
+
+		if (freq < 1e3f)
+			text = fmt::format("{:.1f} Hz", freq);
+		else
+			text = fmt::format("{:.1f} kHz", freq / 1e3f);
+
+		list->AddText({x + 2 + key_size * (key + 0.5f), y}, ImColor(255, 255, 255, key == 60 ? 128 : 64), text.c_str());
+	}
 
 	ImGui::End();
 }

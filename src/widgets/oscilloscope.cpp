@@ -136,8 +136,25 @@ void Oscilloscope::build(int screen_w, int screen_h) {
 	this->screen_w = screen_w;
 	this->screen_h = screen_h;
 
-	ImGui::GetWindowDrawList()->AddCallback(render_callback, this);
-	ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+	/* Draw the oscilloscope waveform */
+	auto list = ImGui::GetWindowDrawList();
+	list->AddCallback(render_callback, this);
+	list->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+
+	/* Draw the grid overlay */
+	list->AddLine({x, y + h / 2}, {x + w, y + h / 2}, ImColor(255, 255, 255, 64));
+	list->AddLine({x + w / 2, y}, {x + w / 2, y + h}, ImColor(255, 255, 255, 64));
+
+	for (int key = 12; key < 128; key += 12) {
+		float freq = powf(2.0f, (key - 69.0f) / 12.0f) * 440.0f;
+		float dx = w / 768.f * sample_rate / freq;
+
+		if (dx >= w)
+			continue;
+
+		list->AddLine({x + w / 2 - dx, y}, {x + w / 2 - dx, y + h}, ImColor(255, 255, 255, 64 / (key <= 60 ? 1 : (key - 48) / 12)));
+		list->AddLine({x + w / 2 + dx, y}, {x + w / 2 + dx, y + h}, ImColor(255, 255, 255, 64 / (key <= 60 ? 1 : (key - 48) / 12)));
+	}
 
 	ImGui::End();
 }
