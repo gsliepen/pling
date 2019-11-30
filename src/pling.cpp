@@ -27,7 +27,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	programs.render(chunk);
 
 	/* Add the samples to the oscilloscope */
-	ringbuffer.add(chunk, programs.get_zero_crossing(-384));
+	ringbuffer.add(chunk, programs.get_zero_crossing(-384), programs.get_base_frequency());
 
 	/* Convert to 16-bit signed stereo */
 	int nsamples = len / 4;

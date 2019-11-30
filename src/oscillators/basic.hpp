@@ -76,6 +76,10 @@ class Basic {
 		phase_at_offset -= floorf(phase_at_offset);
 		return offset - phase_at_offset / (delta * bend);
 	}
+
+	float get_frequency(float bend = 1.0) {
+		return delta * sample_rate * bend;
+	}
 };
 
 }

@@ -38,6 +38,10 @@ float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params)
 	return osc.get_zero_crossing(offset, params.bend);
 }
 
+float Simple::Voice::get_frequency(Simple::Parameters &params) {
+	return osc.get_frequency(params.bend);
+}
+
 bool Simple::render(Chunk &chunk) {
 	bool active = false;
 
@@ -56,6 +60,13 @@ float Simple::get_zero_crossing(float offset) {
 	}
 
 	return crossing;
+}
+
+float Simple::get_base_frequency() {
+	if(Voice *lowest = voices.get_lowest(); lowest)
+		return lowest->get_frequency(params);
+	else
+		return {};
 }
 
 void Simple::note_on(uint8_t key, uint8_t vel) {

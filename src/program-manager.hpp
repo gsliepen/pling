@@ -44,5 +44,6 @@ class ProgramManager {
 	void change(std::shared_ptr<Program> &program, uint8_t MIDI_program, uint8_t bank_lsb = 0, uint8_t bank_msb = 0);
 
 	float get_zero_crossing(float offset);
+	float get_base_frequency();
 	void render(Chunk &chunk);
 };

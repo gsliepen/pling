@@ -42,6 +42,7 @@ class Simple: public Program {
 		void release();
 		bool is_active() {return amplitude_envelope.is_active();}
 		float get_zero_crossing(float offset, Parameters &params);
+		float get_frequency(Parameters &params);
 	};
 
 	VoiceManager<Voice, 32> voices;
@@ -59,4 +60,5 @@ class Simple: public Program {
 	virtual void release_all() final;
 
 	virtual float get_zero_crossing(float offset) final;
+	virtual float get_base_frequency() final;
 };

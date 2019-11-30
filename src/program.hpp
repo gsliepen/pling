@@ -16,6 +16,10 @@ class Program {
 		return offset;
 	};
 
+	virtual float get_base_frequency(void) {
+		return {};
+	};
+
 	virtual void note_on(uint8_t key, uint8_t vel) {};
 	virtual void note_off(uint8_t key, uint8_t vel) {};
 	virtual void pitch_bend(int16_t bend) {};

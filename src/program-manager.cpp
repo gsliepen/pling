@@ -52,6 +52,13 @@ float ProgramManager::get_zero_crossing(float offset) {
 		return offset;
 }
 
+float ProgramManager::get_base_frequency() {
+	if (!entries.empty())
+		return entries.front().program->get_base_frequency();
+	else
+		return {};
+}
+
 void ProgramManager::render(Chunk &chunk) {
 	chunk.clear();
 

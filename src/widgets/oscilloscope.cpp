@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <fmt/format.h>
 #include <glm/glm.hpp>
 #include <stdexcept>
 
@@ -144,6 +145,18 @@ void Oscilloscope::build(int screen_w, int screen_h) {
 	/* Draw the grid overlay */
 	list->AddLine({x, y + h / 2}, {x + w, y + h / 2}, ImColor(255, 255, 255, 64));
 	list->AddLine({x + w / 2, y}, {x + w / 2, y + h}, ImColor(255, 255, 255, 64));
+
+	if (float base_frequency = ringbuffer.get_base_frequency(); base_frequency) {
+		std::string text;
+
+		if (base_frequency < 1e3f) {
+			text = fmt::format("{:.1f} Hz", base_frequency);
+		} else {
+			text = fmt::format("{:.1f} kHz", base_frequency / 1e3f);
+		}
+
+		list->AddText({x + w / 2 + 2, y}, ImColor(255, 255, 255, 128), text.c_str());
+	}
 
 	for (int key = 12; key < 128; key += 12) {
 		float freq = powf(2.0f, (key - 69.0f) / 12.0f) * 440.0f;

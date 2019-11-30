@@ -25,6 +25,7 @@ class RingBuffer {
 	size_t pos{};
 	std::atomic<size_t> tail{};
 	std::atomic<float> best_crossing{};
+	std::atomic<float> base_frequency{};
 	std::atomic<float> avg_rms = 0;
 	std::vector<float> samples;
 
@@ -33,7 +34,7 @@ class RingBuffer {
 		assert(size % chunk_size == 0);
 	}
 
-	void add(const Chunk &chunk, float zero_crossing = 0) {
+	void add(const Chunk &chunk, float zero_crossing = 0, float frequency = 0) {
 		float rms = 0;
 
 		for (size_t i = 0; i < chunk.samples.size(); ++i) {
@@ -42,6 +43,7 @@ class RingBuffer {
 		}
 
 		best_crossing = zero_crossing + pos;
+		base_frequency = frequency;
 		pos %= samples.size();
 		tail = pos;
 		rms = sqrtf(rms) / 8.0f;
@@ -54,6 +56,10 @@ class RingBuffer {
 
 	float get_rms() const {
 		return avg_rms;
+	}
+
+	float get_base_frequency() const {
+		return base_frequency;
 	}
 
 	const std::vector<float> &get_samples() const {
