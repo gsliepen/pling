@@ -7,7 +7,7 @@
 #include "imgui/imgui.h"
 #include "imgui/examples/imgui_impl_opengl3.h"
 #include "imgui_impl_sdl.h"
-#include "view.hpp"
+#include "state.hpp"
 
 #include <fmt/format.h>
 #include <unistd.h>
@@ -133,8 +133,8 @@ void UI::build_status_bar() {
 }
 
 void UI::build_volume_meter(const char *name) {
-	float dB = 20 * log10f(ringbuffer.get_rms() * view.get_master_volume()); // dB
-	float master_dB = 20 * log10f(view.get_master_volume());
+	float dB = 20 * log10f(ringbuffer.get_rms() * state.get_master_volume()); // dB
+	float master_dB = 20 * log10f(state.get_master_volume());
 
 	ImGui::BeginChild(name, {16.0f, h}, false);
 
@@ -155,7 +155,7 @@ void UI::build_volume_meter(const char *name) {
 
 	// Add a slider to allow control of the master volume
 	if (ImGui::VSliderFloat(name, {16.0f, h}, &master_dB, -40.0f, 10.0f, name))
-		view.set_master_volume(powf(10, master_dB / 20));
+		state.set_master_volume(powf(10, master_dB / 20));
 
 	// Draw 10 dB tick markers
 	for (int tick = -30; tick <= 0; tick += 10)
@@ -186,10 +186,10 @@ void UI::build_key_bar() {
 	auto draw_list = ImGui::GetWindowDrawList();
 	auto pos = ImGui::GetCursorScreenPos();
 	pos.x += 16.0f;
-	auto &keys = view.get_keys();
+	auto &keys = state.get_keys();
 	float key_size = (w - 32.0f) / 128.0f;
 	auto bent_pos = pos;
-	bent_pos.x += key_size * view.get_bend() / 4096.0f;
+	bent_pos.x += key_size * state.get_bend() / 4096.0f;
 
 	draw_list->AddRectFilled({0, 0}, {w, 16}, ImColor(128, 0, 0, 128));
 	for (uint8_t key = 0; key < 128; ++key) {
@@ -215,7 +215,7 @@ void UI::build_main_program() {
 		"...",
 	};
 
-	auto [port, channel] = view.get_active_channel();
+	auto [port, channel] = state.get_active_channel();
 
 	if (port) {
 		ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str());

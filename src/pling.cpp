@@ -12,13 +12,13 @@
 #include "midi.hpp"
 #include "program-manager.hpp"
 #include "ui.hpp"
-#include "view.hpp"
+#include "state.hpp"
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
 static RingBuffer ringbuffer{16384};
 static ProgramManager programs;
-View view;
+State state;
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	static Chunk chunk;
@@ -32,7 +32,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	/* Convert to 16-bit signed stereo */
 	int nsamples = len / 4;
 	int16_t *data = (int16_t *)stream;
-	float amplitude = 32767.0f * view.get_master_volume();
+	float amplitude = 32767.0f * state.get_master_volume();
 
 	for(int i = 0; i < nsamples; i++) {
 		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * amplitude;

@@ -2,7 +2,7 @@
 
 #include "midi.hpp"
 
-#include "view.hpp"
+#include "state.hpp"
 
 #include <fmt/format.h>
 #include <fstream>
@@ -156,7 +156,7 @@ void Manager::scan_ports() {
 				Port &port = ports.emplace_back(info);
 
 				if (is_first_port)
-					view.set_active_channel(port, 0);
+					state.set_active_channel(port, 0);
 
 				for(auto &channel: port.channels) {
 					channel.program = programs.activate(0);
@@ -208,15 +208,15 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 	// ----------------------
 	case 0x8:
 		program->note_off(data[1], data[2]);
-		view.note_off(data[1]);
+		state.note_off(data[1]);
 		break;
 	case 0x9:
 		if (data[2]) {
 			program->note_on(data[1], data[2]);
-			view.note_on(data[1], data[2]);
+			state.note_on(data[1], data[2]);
 		} else {
 			program->note_off(data[1], data[2]);
-			view.note_off(data[1]);
+			state.note_off(data[1]);
 		}
 		break;
 	case 0xa:
@@ -224,15 +224,15 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		break;
 	case 0xb:
 		if (data[1] == 7)
-			view.set_master_volume(data[2] ? powf(10, data[2] / 127.0f * 2 - 2) : 0);
+			state.set_master_volume(data[2] ? powf(10, data[2] / 127.0f * 2 - 2) : 0);
 		else
 			program->control_change(data[1], data[2]);
 		break;
 	case 0xc:
 		// program change
-		view.set_active_channel(port, chan);
+		state.set_active_channel(port, chan);
 		programs.change(channel.program, data[1]);
-		view.set_active_program(channel.program);
+		state.set_active_program(channel.program);
 		break;
 	case 0xd:
 		program->channel_pressure(data[1]);
@@ -240,7 +240,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 	case 0xe: {
 		int16_t value = (data[1] | (data[2] << 7)) - 8192;
 		program->pitch_bend(value);
-		view.set_bend(value);
+		state.set_bend(value);
 		break;
 	}
 	case 0xf:

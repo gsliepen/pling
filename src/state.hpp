@@ -7,7 +7,7 @@
 #include "midi.hpp"
 #include "program.hpp"
 
-class View {
+class State {
 	MIDI::Port *active_port{};
 	uint8_t active_channel{};
 	std::shared_ptr<Program> active_program{};
@@ -62,4 +62,4 @@ class View {
 	}
 };
 
-extern View view;
+extern State state;
