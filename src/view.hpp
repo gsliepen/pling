@@ -13,6 +13,7 @@ class View {
 	std::shared_ptr<Program> active_program{};
 	std::array<uint8_t, 128> keys;
 	int16_t bend;
+	float master_volume{1};
 
 	public:
 	void set_active_channel(MIDI::Port &port, uint8_t channel) {
@@ -36,20 +37,28 @@ class View {
 		bend = value;
 	}
 
-	std::pair<MIDI::Port *, uint8_t> get_active_channel() {
+	void set_master_volume(float value) {
+		master_volume = value;
+	}
+
+	std::pair<MIDI::Port *, uint8_t> get_active_channel() const {
 		return std::make_pair(active_port, active_channel);
 	}
 
-	std::shared_ptr<Program> get_active_program() {
+	std::shared_ptr<Program> get_active_program() const {
 		return active_program;
 	}
 
-	const std::array<uint8_t, 128> &get_keys() {
+	const std::array<uint8_t, 128> &get_keys() const {
 		return keys;
 	}
 
-	int16_t get_bend() {
+	int16_t get_bend() const {
 		return bend;
+	}
+
+	float get_master_volume() const {
+		return master_volume;
 	}
 };
 

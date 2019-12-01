@@ -32,10 +32,11 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	/* Convert to 16-bit signed stereo */
 	int nsamples = len / 4;
 	int16_t *data = (int16_t *)stream;
+	float amplitude = 32767.0f * view.get_master_volume();
 
 	for(int i = 0; i < nsamples; i++) {
-		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * 32767;
-		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * 32767;
+		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * amplitude;
+		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * amplitude;
 	}
 }
 

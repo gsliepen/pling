@@ -132,21 +132,51 @@ void UI::build_status_bar() {
 	ImGui::EndChild();
 }
 
-void UI::build_volume_meters() {
-	float dB = 20 * log10f(ringbuffer.get_rms()); // dB
+void UI::build_volume_meter(const char *name) {
+	float dB = 20 * log10f(ringbuffer.get_rms() * view.get_master_volume()); // dB
+	float master_dB = 20 * log10f(view.get_master_volume());
 
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(glm::clamp(dB, 0.0f, 1.0f), 0.0f, 0.0f, 1.0f));
+	ImGui::BeginChild(name, {16.0f, h}, false);
+
+	// Draw the meter
+	auto pos = ImGui::GetCursorScreenPos();
+	auto list = ImGui::GetWindowDrawList();
+	if (dB > 10) {
+		// We're clipping for sure now.
+		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y}, ImColor{255, 0, 0, 255});
+	} else if (dB > 0) {
+		// We are in the 10 dB headroom range.
+		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y + h * 0.2f}, ImColor{0, 128, 0, 255});
+		list->AddRectFilled({pos.x, pos.y + h * 0.2f}, {pos.x + 16.0f, pos.y + h * (10.0f - dB) / 50.0f}, ImColor{192, 192, 0, 255});
+	} else {
+		// We are in safe range.
+		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y + h * (10.0f - dB) / 50.0f}, ImColor{0, 128, 0, 255});
+	}
+
+	// Add a slider to allow control of the master volume
+	if (ImGui::VSliderFloat(name, {16.0f, h}, &master_dB, -40.0f, 10.0f, name))
+		view.set_master_volume(powf(10, master_dB / 20));
+
+	// Draw 10 dB tick markers
+	for (int tick = -30; tick <= 0; tick += 10)
+		list->AddLine({pos.x, pos.y + h * (10 - tick) / 50.0f}, {pos.x + 16.0f, pos.y + h * (10 - tick) / 50.0f}, ImColor{255, 255, 255, tick == 0 ? 128 : 64});
+
+	ImGui::EndChild();
+}
+
+void UI::build_volume_meters() {
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{0, 0, 0, 0});
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4{0, 0, 0, 0});
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4{0, 0, 0, 0});
 
 	ImGui::SetNextWindowPos({0.0f, 0.0f});
-	ImGui::BeginChild("left", {16.0f, h}, false);
-	ImGui::VSliderFloat("left amp", {16.0f, h}, &dB, -40.0f, 10.0f, "L");
-	ImGui::EndChild();
+	build_volume_meter("L");
 
 	ImGui::SetNextWindowPos({w - 16.0f, 0.0f});
-	ImGui::BeginChild("right", {16.0f, h}, false);
-	ImGui::VSliderFloat("right amp", {16.0f, h}, &dB, -40.0f, 10.0f, "R");
-	ImGui::EndChild();
+	build_volume_meter("R");
 
+	ImGui::PopStyleColor();
+	ImGui::PopStyleColor();
 	ImGui::PopStyleColor();
 }
 

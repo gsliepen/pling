@@ -223,7 +223,10 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		program->poly_pressure(data[1], data[2]);
 		break;
 	case 0xb:
-		program->control_change(data[1], data[2]);
+		if (data[1] == 7)
+			view.set_master_volume(data[2] ? powf(10, data[2] / 127.0f * 2 - 2) : 0);
+		else
+			program->control_change(data[1], data[2]);
 		break;
 	case 0xc:
 		// program change
