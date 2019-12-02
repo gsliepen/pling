@@ -21,10 +21,6 @@ namespace MIDI {
  */
 struct Channel {
 	std::shared_ptr<Program> program;
-
-	struct {
-		uint8_t vel{};
-	} keys[128]{};
 };
 
 /**
@@ -56,6 +52,7 @@ class Port {
 	void open(const snd_rawmidi_info_t *info);
 	bool is_match(const snd_rawmidi_info_t *info);
 
+	void panic();
 	std::string get_name() {
 		return name;
 	}
@@ -86,6 +83,8 @@ class Manager {
 	Manager(const Manager &other) = delete;
 	Manager(Manager &&other) = delete;
 	Manager &operator=(const Manager &other) = delete;
+
+	void panic();
 };
 
 }

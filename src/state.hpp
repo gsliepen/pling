@@ -33,6 +33,10 @@ class State {
 		keys[key] = 0;
 	}
 
+	void release_all() {
+		keys.fill(0);
+	}
+
 	void set_bend(int16_t value) {
 		bend = value;
 	}

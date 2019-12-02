@@ -257,7 +257,11 @@ void UI::build_buttons() {
 	ImGui::Button("Learn", button_size); ImGui::SameLine();
 	ImGui::Button("Load", button_size); ImGui::SameLine();
 	ImGui::Button("Save", button_size);
-	ImGui::Button("Panic", button_size); ImGui::SameLine();
+
+	if (ImGui::Button("Panic", button_size))
+		MIDI::manager.panic();
+
+	ImGui::SameLine();
 	ImGui::Button("Controls", button_size); ImGui::SameLine();
 	ImGui::Button("Transport", button_size);
 	ImGui::PopFont();

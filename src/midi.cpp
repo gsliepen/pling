@@ -77,6 +77,12 @@ void Port::close() {
 	sub = -1;
 }
 
+void Port::panic() {
+	for (auto &channel: channels) {
+		channel.program->release_all();
+	}
+}
+
 Manager::Manager(ProgramManager &programs): programs(programs) {
 	// Add a self-pipe.
 	if (pipe(pipe_fds))
@@ -338,6 +344,12 @@ void Manager::process_events() {
 			}
 		}
 	}
+}
+
+void Manager::panic() {
+	for (auto &port: ports)
+		port.panic();
+	state.release_all();
 }
 
 }

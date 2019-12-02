@@ -148,7 +148,10 @@ class VoiceManager {
 	 * Release all voices.
 	 */
 	void release_all() {
-
+		for(unsigned int i = 0; i < N; ++i) {
+			state[i].pressed = false;
+			voices[i].release();
+		}
 	}
 
 	/**
