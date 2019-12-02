@@ -2,6 +2,7 @@
 
 #include "pling.hpp"
 
+#include <chrono>
 #include <fftw3.h>
 #include <fmt/ostream.h>
 #include <glm/glm.hpp>
@@ -22,6 +23,11 @@ State state;
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	static Chunk chunk;
+	using clock = std::chrono::steady_clock;
+	using duration = std::chrono::duration<float>;
+	static clock::time_point last_end;
+
+	clock::time_point start = clock::now();
 
 	/* Render samples from active programs */
 	programs.render(chunk);
@@ -38,6 +44,13 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * amplitude;
 		*data++ = glm::clamp(chunk.samples[i] * 0.1f, -1.f, 1.f) * amplitude;
 	}
+
+	clock::time_point end = clock::now();
+	duration active = end - start;
+	duration total = end - last_end;
+	last_end = end;
+
+	state.set_audio_usage(active / total);
 }
 
 static void setup_audio() {

@@ -128,7 +128,7 @@ void UI::build_status_bar() {
 	ImGui::BeginChild("status", {1.0f * w - 32.0f, 16.0f}, false);
 	ImGui::Text("Pling!");
 	ImGui::SameLine();
-	ImGui::Text("100%%");
+	ImGui::Text(fmt::format("{:5.1f}%%", state.get_audio_usage()).c_str());
 	ImGui::EndChild();
 }
 
