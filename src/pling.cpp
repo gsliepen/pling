@@ -19,7 +19,9 @@
 
 static RingBuffer ringbuffer{16384};
 static ProgramManager programs;
+
 State state;
+MIDI::Manager MIDI::manager(programs);
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	static Chunk chunk;
@@ -76,8 +78,6 @@ int main(int argc, char *args[]) {
 
 	fftwf_import_wisdom_from_filename("pling.wisdom");
 	UI ui(ringbuffer);
-
-	MIDI::Manager midi_manager(programs);
 
 	ui.run();
 

@@ -87,4 +87,6 @@ class Manager {
 	void panic();
 };
 
+extern Manager manager;
+
 }
