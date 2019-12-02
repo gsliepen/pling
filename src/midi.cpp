@@ -161,8 +161,10 @@ void Manager::scan_ports() {
 
 				Port &port = ports.emplace_back(info);
 
-				if (is_first_port)
+				if (is_first_port) {
 					state.set_active_channel(port, 0);
+					last_active_port = &port;
+				}
 
 				for(auto &channel: port.channels) {
 					channel.program = programs.activate(0);
@@ -191,6 +193,12 @@ Manager::~Manager() {
 }
 
 void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len) {
+	// In learning mode we should not react to any MIDI command, but rather remember the last command.
+	if (state.get_learn_midi()) {
+		port.set_last_command(data, len);
+		return;
+	}
+
 	uint8_t type = data[0] >> 4;
 	uint8_t chan = data[0] & 0xf;
 
@@ -329,11 +337,14 @@ void Manager::process_events() {
 					pfds[i].fd = -1;
 				}
 
+				last_active_port = &port;
+
 				decltype(len) start = 0;
 				decltype(len) end;
 
+				// TODO: filter out real-time messages
 				for(end = 1; end < len; end++) {
-					if(buf[end] & 0x80) {
+					if(buf[end] & 0x80 && (buf[end] != 0xf7 || buf[start] != 0xf0)) {
 						process_midi_command(port, buf + start, end - start);
 						start = end;
 					}
@@ -350,6 +361,133 @@ void Manager::panic() {
 	for (auto &port: ports)
 		port.panic();
 	state.release_all();
+}
+
+std::string command_to_text(const std::vector<uint8_t> &data) {
+	if (data.empty())
+		return {};
+
+	uint8_t type = data[0] >> 4;
+	uint8_t chan = data[0] & 0xf;
+
+	switch(type) {
+	case 0x0:
+	case 0x1:
+	case 0x2:
+	case 0x3:
+	case 0x4:
+	case 0x5:
+	case 0x6:
+	case 0x7:
+		// This should never happen in the first byte.
+		break;
+
+	// Channel voice messages
+	// ----------------------
+	case 0x8:
+		if (data.size() != 3)
+			break;
+		return fmt::format("channel {} note-off key {} vel {}", chan + 1, data[1], data[2]);
+	case 0x9:
+		if (data.size() != 3)
+			break;
+		return fmt::format("channel {} note-on key {} vel {}", chan + 1, data[1], data[2]);
+	case 0xa:
+		if (data.size() != 3)
+			break;
+		return fmt::format("channel {} polyphonic-pressure key {} value {}", chan + 1, data[1], data[2]);
+	case 0xb:
+		if (data.size() != 3)
+			break;
+		return fmt::format("channel {} control-change {} value {}", chan + 1, data[1], data[2]);
+	case 0xc:
+		if (data.size() != 2)
+			break;
+		return fmt::format("channel {} program-change {}", chan + 1, data[1]);
+	case 0xd:
+		if (data.size() != 2)
+			break;
+		return fmt::format("channel {} channel-pressure value {}", chan + 1, data[1]);
+	case 0xe: {
+		if (data.size() != 3)
+			break;
+		int16_t value = (data[1] | (data[2] << 7)) - 8192;
+		return fmt::format("channel {} pitch-bend value {}", chan + 1, value);
+	}
+	case 0xf:
+		switch (data[0] & 0x0f) {
+		// System common messages
+		// ----------------------
+		case 0x0: {
+			std::string text = "sysex";
+			for (size_t i = 1; i < data.size(); ++i) {
+				if (data[i] == 0xf7)
+					break;
+				text.push_back(' ');
+				text.push_back("0123456789ABCDEF"[data[i] >> 4]);
+				text.push_back("0123456789ABCDEF"[data[i] & 0xf]);
+			}
+			return text;
+		}
+		case 0x1:
+			if (data.size() != 2)
+				break;
+			return fmt::format("time-code-quarter-frame type {} value {}", data[1] >> 4, data[1] && 0xf);
+		case 0x2: {
+			if (data.size() != 3)
+				break;
+			uint16_t value = (data[1] | (data[2] << 7));
+			return fmt::format("song-position-pointer {}", value);
+		}
+		case 0x3:
+			if (data.size() != 2)
+				break;
+			return fmt::format("song-select {}", data[1]);
+		case 0x4: // (reserved)
+			break;
+		case 0x5: // (reserved)
+			break;
+		case 0x6:
+			if (data.size() != 1)
+				break;
+			return "tune-request";
+			break;
+		case 0x7:
+			if (data.size() != 1)
+				break;
+			return "end-of-exclusive";
+			break;
+
+		// System real-time messages
+		// -------------------------
+		case 0x8:
+			return "timing-clock";
+		case 0x9: // (reserved)
+			break;
+		case 0xa:
+			return "start";
+		case 0xb:
+			return "continue";
+		case 0xc:
+			return "stop";
+		case 0xd: // (undefined)
+			break;
+		case 0xe:
+			return "active-sensing";
+		case 0xf:
+			return "reset";
+		}
+		break;
+	}
+
+	std::string text = "unknown";
+	for (size_t i = 1; i < data.size() - 1; ++i) {
+		text.push_back(' ');
+		text.push_back("0123456789ABCDEF"[data[i] >> 4]);
+		text.push_back("0123456789ABCDEF"[data[i] & 0xf]);
+	}
+
+	return text;
 }
 
 }

@@ -12,6 +12,7 @@ class UI {
 	float w = 800;
 	float h = 480;
 	bool paused{};
+	bool show_learn_window{};
 
 	struct Window {
 		SDL_Window *window{};
@@ -37,6 +38,7 @@ class UI {
 	void build_key_bar();
 	void build_main_program();
 	void build_buttons();
+	void build_learn_window();
 	void build();
 	void render();
 

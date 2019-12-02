@@ -7,6 +7,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <poll.h>
 #include <string>
 #include <thread>
@@ -38,6 +39,9 @@ class Port {
 	std::string name;
 	std::string hwid;
 
+	mutable std::mutex last_command_mutex;
+	std::vector<uint8_t> last_command;
+
 	Channel channels[16];
 
 	public:
@@ -53,12 +57,29 @@ class Port {
 	bool is_match(const snd_rawmidi_info_t *info);
 
 	void panic();
-	std::string get_name() {
+
+	std::string get_name() const {
 		return name;
 	}
 
-	bool is_open() {
+	bool is_open() const {
 		return in;
+	}
+
+	void set_last_command(const uint8_t *data, ssize_t len) {
+		std::lock_guard lock(last_command_mutex);
+
+		if (len < 0) {
+			last_command.clear();
+		} else {
+			last_command.resize(len);
+			std::copy(data, data + len, last_command.begin());
+		}
+	}
+
+	std::vector<uint8_t> get_last_command() const {
+		std::lock_guard lock(last_command_mutex);
+		return last_command;
 	}
 };
 
@@ -71,6 +92,7 @@ class Manager {
 	std::vector<struct pollfd> pfds;
 	std::thread thread;
 	int pipe_fds[2]{-1, -1};
+	Port *last_active_port{};
 
 	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
 	void process_events();
@@ -85,7 +107,17 @@ class Manager {
 	Manager &operator=(const Manager &other) = delete;
 
 	void panic();
+
+	const std::deque<Port> &get_ports() const {
+		return ports;
+	};
+
+	const Port *get_last_active_port() const {
+		return last_active_port;
+	}
 };
+
+std::string command_to_text(const std::vector<uint8_t> &data);
 
 extern Manager manager;
 

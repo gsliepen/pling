@@ -252,7 +252,12 @@ void UI::build_buttons() {
 	ImVec2 button_size = {size.x / 3, size.y / 2};
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0f, 0.0f});
 	ImGui::PushFont(big_font);
-	ImGui::Button("Learn", button_size); ImGui::SameLine();
+	if(ImGui::Button("Learn", button_size)) {
+		state.set_learn_midi(true);
+		MIDI::manager.panic();
+		show_learn_window = true;
+	}
+	ImGui::SameLine();
 	ImGui::Button("Load", button_size); ImGui::SameLine();
 	ImGui::Button("Save", button_size);
 
@@ -308,6 +313,10 @@ void UI::build() {
 	spectrum.build(w, h);
 
 	ImGui::End();
+
+	if (show_learn_window)
+		build_learn_window();
+
 	ImGui::Render();
 }
 

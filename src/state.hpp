@@ -14,6 +14,7 @@ class State {
 	std::array<uint8_t, 128> keys;
 	int16_t bend;
 	float master_volume{1};
+	bool learn_midi{};
 
 	public:
 	void set_active_channel(MIDI::Port &port, uint8_t channel) {
@@ -45,6 +46,8 @@ class State {
 		master_volume = value;
 	}
 
+	void set_learn_midi(bool value) {
+		learn_midi = value;
 	}
 
 	std::pair<MIDI::Port *, uint8_t> get_active_channel() const {
@@ -66,6 +69,9 @@ class State {
 	float get_master_volume() const {
 		return master_volume;
 	}
+
+	bool get_learn_midi() const {
+		return learn_midi;
 	}
 };
 
