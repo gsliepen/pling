@@ -125,10 +125,8 @@ bool UI::process_events() {
 
 void UI::build_status_bar() {
 	ImGui::SetNextWindowPos({16.0f, 0.0f});
-	ImGui::BeginChild("status", {1.0f * w - 32.0f, 16.0f}, false);
+	ImGui::BeginChild("status", {w - 32.0f, 16.0f}, false);
 	ImGui::Text("Pling!");
-	ImGui::SameLine();
-	ImGui::Text(fmt::format("{:5.1f}%%", state.get_audio_usage()).c_str());
 	ImGui::EndChild();
 }
 
