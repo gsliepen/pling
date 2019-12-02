@@ -11,10 +11,12 @@
 #include "../imgui/imgui.h"
 #include "../pling.hpp"
 #include "../shader.hpp"
+#include "../utils.hpp"
 
 namespace Widgets {
 
 class Spectrum {
+	static const size_t texture_size = 768;
 	GLuint texture;
 
 	const RingBuffer &ringbuffer;
@@ -33,8 +35,8 @@ class Spectrum {
 	float h;
 
 	static constexpr size_t fft_size = 8192;
-	static constexpr float min_freq = 7.943049791; // MIDI key 0
-	static constexpr float max_freq = 12911.4169283; // MIDI key 127
+	static constexpr float min_freq = key_to_frequency(-0.5f);
+	static constexpr float max_freq = key_to_frequency(127.5f);
 
 	fftwf_plan plan;
 	std::vector<float> input;

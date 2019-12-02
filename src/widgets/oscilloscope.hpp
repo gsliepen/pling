@@ -13,6 +13,7 @@
 namespace Widgets {
 
 class Oscilloscope {
+	static const size_t texture_size = 768;
 	GLuint texture;
 
 	const RingBuffer &ringbuffer;

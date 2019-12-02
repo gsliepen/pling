@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "../shader.hpp"
+#include "../utils.hpp"
 
 namespace Widgets {
 
@@ -50,7 +51,7 @@ void main(void) {
 )";
 
 Oscilloscope::Oscilloscope(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), program(vertex_shader_source, fragment_shader_source) {
-	scope.resize(768);
+	scope.resize(texture_size);
 
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -159,8 +160,8 @@ void Oscilloscope::build(int screen_w, int screen_h) {
 	}
 
 	for (int key = 12; key < 128; key += 12) {
-		float freq = powf(2.0f, (key - 69.0f) / 12.0f) * 440.0f;
-		float dx = w / 768.f * sample_rate / freq;
+		float freq = key_to_frequency(key);
+		float dx = w / texture_size * sample_rate / freq;
 
 		if (dx >= w)
 			continue;

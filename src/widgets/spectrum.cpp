@@ -53,7 +53,7 @@ void main(void) {
 Spectrum::Spectrum(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), program(vertex_shader_source, fragment_shader_source) {
 	input.resize(fft_size + 2);
 	window.resize(fft_size);
-	spectrum.resize(768);
+	spectrum.resize(texture_size);
 	plan = fftwf_plan_dft_r2c_1d(fft_size, input.data(), reinterpret_cast<fftwf_complex *>(input.data()), FFTW_MEASURE | FFTW_R2HC);
 
 	glGenTextures(1, &texture);
@@ -179,7 +179,7 @@ void Spectrum::build(int screen_w, int screen_h) {
 	float key_size = w / 128.0f;
 	for (int key = 12; key < 128; key += 12) {
 		list->AddLine({x + key_size * (key + 0.5f), y}, {x + key_size * (key + 0.5f), y + h}, ImColor(255, 255, 255, key == 60 ? 64 : 32));
-		float freq = powf(2.0f, (key - 69.0f) / 12.0f) * 440.0f;
+		float freq = key_to_frequency(key);
 		std::string text;
 
 		if (freq < 1e3f)
