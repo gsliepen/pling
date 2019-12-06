@@ -14,7 +14,6 @@ fmtlib = dependency('fmt')
 gl = dependency('gl')
 glm = dependency('glm')
 sdl2 = dependency('SDL2')
-sdl2_ttf = dependency('SDL2_ttf')
 threads = dependency('threads')
 
 subdir('src')
