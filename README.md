@@ -1,9 +1,9 @@
 # About
 
 This project is intended to provide a easy and fun way to convert a MIDI
-controller keyboard into a digital audio workstation, where (almost) all of the
-DAW functionality will be accessible via the keyboard. It is intended to be
-used with keyboard that have lots of controls, such as:
+controller into a digital audio workstation, where (almost) all of the DAW
+functionality will be accessible via the MIDI controller. It is intended to be
+used with MIDI controllers that have lots of controls, such as:
 
 * AKAI MPK
 * Arturia Keylab
@@ -16,8 +16,8 @@ Alternatively, it could be used using multiple smaller MIDI controllers, such
 as the SubZero MINI series 3, or by mixing and matching together different
 controllers.
 
-The software is intended to run on a small single-board computer, such as the
-Raspberry Pi, ASUS Tinkerboard, Odroid-XU4, and so on.
+The software is intended to run well on small single-board computers, such as
+the Raspberry Pi, ASUS Tinkerboard, Odroid-XU4, and so on.
 
 # Synthesis
 
@@ -30,8 +30,10 @@ Planned engine types are:
 * Waveguide synthesis
 * Soundfonts (SF2, SFZ)
 
-The goal is to have efficient engines so we can get a high degree of polyphony
+The engines should be efficient so we can get a high degree of polyphony
 even on small devices such as the Raspberry Pi.
+
+The goal is not to reproduce the sound of existing synthesizers.
 
 # Graphical User interface
 
@@ -42,6 +44,11 @@ will be present at all times. Furthermore, context-dependent widgets will be
 shown, such as an ADSR curve when sliders are used to modify envelope
 parameters, or a Bode plot when filter parameters are changed.
 
+The goal is to keep the display simple at all times, and not have hundreds of
+variables and controls visible simultaneously. Furthermore, there should be no
+skeuomorphisms.  Also, values should be shown as physical quantities with
+proper units, instead of something that goes arbitrarily from 1 to 10.
+
 # Implementation
 
 The goal is to have a very CPU-efficient implementation of the synthesis
@@ -50,14 +57,15 @@ rendered as chunks of 128 floats. This should be very L1-cache friendly, and
 might also benefit from vectorization. At a sample rate of 48 kHz, this means a
 latency of 2.6 ms, which should be acceptible.
 
-SDL is used both for UI rendering as well as audio output. The reason for this
+SDL is used both for GUI rendering as well as audio output. The reason for this
 is that it supports a wide variety of audio backends, including raw ALSA. It
 also does not introduce any unnecessary latency itself. Since SDL does not
 support MIDI, we do require the ALSA library for MIDI I/O.
 
-OpenGL ES 2.0 is chosen for the UI rendering, since it is supported on many
+OpenGL ES 2.0 is chosen for the GUI rendering, since it is supported on many
 devices, including the Raspberry Pi. It also means a lot of rendering details
-can be offloaded to shaders that run on the GPU.
+can be offloaded to shaders that run on the GPU. The GUI widgets are provided
+by Dear ImGui, as this integrates very well with real-time OpenGL rendering.
 
 # Dependencies
 
