@@ -173,6 +173,9 @@ depends on context such as modifier buttons pressed and which bank is active, *a
 There is a 1-to-1 mapping between internal NRPN parameters and the controls of the active program,
 even though the resulting effect of such a control might depend on the state of other controls.
 
+Each internal control should also have a logical name and type when interacting with humans, either via the GUI or when storing parameters in config files in a human-readable format.
+For example, fader 1 on a MIDI controller that is in instrument control mode, given the active program, maps to "oscillator 1/amplitude envelope/attack time", which in turn maps to a given NRPN.
+
 # GUI controls
 
 While the goal of this project is to provide a way to use a MIDI controller without needing to interact with a computer with a mouse and keyboard,
