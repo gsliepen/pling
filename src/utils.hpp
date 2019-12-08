@@ -38,3 +38,11 @@ constexpr uint8_t cc_select(uint8_t val, uint8_t max) {
 constexpr float key_to_frequency(float key) {
 	return 440.0f * exp2f((key - 69.0f) / 12.0f);
 }
+
+constexpr float amplitude_to_dB(float value) {
+	return 20.0f * log10f(value);
+}
+
+constexpr float dB_to_amplitude(float value) {
+	return powf(10.0f, value / 20.0f);
+}

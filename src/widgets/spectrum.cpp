@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "shader.hpp"
+#include "../utils.hpp"
 
 namespace Widgets {
 
@@ -108,10 +109,10 @@ void Spectrum::render(int screen_w, int screen_h) {
 
 		/* Interpolate between FFT samples */
 		const float fr = u_in * (fft_size / 2) - i_in;
-		const float value0 = log10(abs(output[i_in]) / fft_size * 4);
-		const float value1 = log10(abs(output[i_in + 1]) / fft_size * 4);
-		const float dB = 20 * glm::mix(value0, value1, fr);
-		const float value = 1 + (dB - 10) / 60; // -40..10 dB range
+		const float value0 = amplitude_to_dB(abs(output[i_in]) / fft_size * 4);
+		const float value1 = amplitude_to_dB(abs(output[i_in + 1]) / fft_size * 4);
+		const float dB = glm::mix(value0, value1, fr);
+		const float value = 1 + (dB - max_dB) / (max_dB - min_dB);
 
 		spectrum[i] = lrintf(glm::clamp(value * 255.0f, 0.0f, 255.0f));
 	}
@@ -170,10 +171,11 @@ void Spectrum::build(int screen_w, int screen_h) {
 	list->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 
 	/* Draw the grid overlay */
-	for (int dB = -40; dB <= 10; dB += 10) {
-		float dBy = (10.0f - dB) / 50.0f * h;
-		list->AddLine({x, y + dBy}, {x + w, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 64 : 32));
-		list->AddText({x, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 128 : 64), fmt::format("{:+3d} dB", dB).c_str());
+	for (float dB = min_dB; dB < max_dB + 0.1f; dB += amplitude_to_dB(4.0f)) {
+		float dBy = (max_dB - dB) / (max_dB - min_dB) * h;
+		if (dB < lrintf(max_dB))
+			list->AddLine({x, y + dBy}, {x + w, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 64 : 32));
+		list->AddText({x, y + dBy}, ImColor(255, 255, 255, dB == 0 ? 128 : 64), fmt::format("{:+3.0f} dB", dB).c_str());
 	}
 
 	float key_size = w / 128.0f;

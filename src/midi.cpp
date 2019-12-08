@@ -3,6 +3,7 @@
 #include "midi.hpp"
 
 #include "state.hpp"
+#include "utils.hpp"
 
 #include <fmt/format.h>
 #include <fstream>
@@ -238,7 +239,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		break;
 	case 0xb:
 		if (data[1] == 7)
-			state.set_master_volume(data[2] ? powf(10, data[2] / 127.0f * 2 - 2) : 0);
+			state.set_master_volume(data[2] ? dB_to_amplitude(data[2] / 127.0f * 48.0f - 48.0f) : 0);
 		else
 			program->control_change(data[1], data[2]);
 		break;

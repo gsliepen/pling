@@ -131,33 +131,35 @@ void UI::build_status_bar() {
 }
 
 void UI::build_volume_meter(const char *name) {
-	float dB = 20 * log10f(ringbuffer.get_rms() * state.get_master_volume()); // dB
-	float master_dB = 20 * log10f(state.get_master_volume());
+	float dB = amplitude_to_dB(ringbuffer.get_rms() * state.get_master_volume());
+	float master_dB = amplitude_to_dB(state.get_master_volume());
 
 	ImGui::BeginChild(name, {16.0f, h}, false);
 
 	// Draw the meter
 	auto pos = ImGui::GetCursorScreenPos();
 	auto list = ImGui::GetWindowDrawList();
-	if (dB > 10) {
+	if (dB > max_dB) {
 		// We're clipping for sure now.
 		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y}, ImColor{255, 0, 0, 255});
 	} else if (dB > 0) {
 		// We are in the 10 dB headroom range.
 		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y + h * 0.2f}, ImColor{0, 128, 0, 255});
-		list->AddRectFilled({pos.x, pos.y + h * 0.2f}, {pos.x + 16.0f, pos.y + h * (10.0f - dB) / 50.0f}, ImColor{192, 192, 0, 255});
+		list->AddRectFilled({pos.x, pos.y + h * 0.2f}, {pos.x + 16.0f, pos.y + h * (max_dB - dB) / (max_dB - min_dB)}, ImColor{192, 192, 0, 255});
 	} else {
 		// We are in safe range.
-		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y + h * (10.0f - dB) / 50.0f}, ImColor{0, 128, 0, 255});
+		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y + h * (max_dB - dB) / (max_dB - min_dB)}, ImColor{0, 128, 0, 255});
 	}
 
 	// Add a slider to allow control of the master volume
-	if (ImGui::VSliderFloat(name, {16.0f, h}, &master_dB, -40.0f, 10.0f, name))
-		state.set_master_volume(powf(10, master_dB / 20));
+	if (ImGui::VSliderFloat(name, {16.0f, h}, &master_dB, min_dB, max_dB, name))
+		state.set_master_volume(dB_to_amplitude(master_dB));
 
-	// Draw 10 dB tick markers
-	for (int tick = -30; tick <= 0; tick += 10)
-		list->AddLine({pos.x, pos.y + h * (10 - tick) / 50.0f}, {pos.x + 16.0f, pos.y + h * (10 - tick) / 50.0f}, ImColor{255, 255, 255, tick == 0 ? 128 : 64});
+	// Draw 6 dB tick markers
+	for (float dB = min_dB; dB < max_dB; dB += amplitude_to_dB(2.0f)) {
+		const float y = h * (max_dB - dB) / (max_dB - min_dB);
+		list->AddLine({pos.x, pos.y + y}, {pos.x + 16.0f, pos.y + y}, ImColor{255, 255, 255, lrintf(dB) == 0 ? 128 : 64});
+	}
 
 	ImGui::EndChild();
 }
