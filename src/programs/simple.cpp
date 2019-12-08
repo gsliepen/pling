@@ -128,21 +128,18 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 		break;
 	case 30:
 	case 60:
-		params.freq = cc_exponential(val, 0, 1, 1e4, sample_rate / 4);
+		params.freq = cc_exponential(val, 0, 1, sample_rate / 6, sample_rate / 6);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 31:
 	case 61:
-		params.Q = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
+		params.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 	case 32:
 	case 62:
-		params.gain = cc_exponential(val, 0, 1e-2, 1e2, 1e2);
-		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
 
 	case 33:

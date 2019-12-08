@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
 #include "../pling.hpp"
 
 namespace Filter {
@@ -22,23 +23,21 @@ class StateVariable {
 
 		float f{1};
 		float q{1};
-		float sqrt_q{1};
 
 		void set(Type type, float freq, float Q) {
 			this->type = type;
-			this->f = freq / sample_rate * 4;
-			this->q = 1 - 2 / M_PI * atanf(sqrtf(Q));
-			this->sqrt_q = sqrtf(q);
+			this->f = glm::clamp(2.0f * sinf(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
+			this->q = glm::clamp(1.0f / Q, 0.0f, 1.0f);
 		}
 
 		void set_freq(float freq) {
-			this->f = freq / sample_rate * 4;
+			this->f = glm::clamp(2.0f * sinf(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 		}
 	};
 
 	float filter(Parameters &params, float in) {
 		low  = params.f * band + low;
-		high = params.sqrt_q * in - params.q * band - low;
+		high = in - params.q * band - low;
 		band = params.f * high + band;
 
 		switch(params.type) {
