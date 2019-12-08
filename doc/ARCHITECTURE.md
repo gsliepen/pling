@@ -139,6 +139,7 @@ Allow multiple keyboard being connected simultaneously.
 Each keyboard has its own programs. Even if set to the same program number, they will have distinct instances of Program.
 Support 16 MIDI channels per controller, each with its own program. It's a lot of state to maintain, but most of it is inactive anyway.
 If we know a controller can only send on one channel at a time (ie, no layer/split etc), we can optimize and treat it as "omni" mode, and merge all channels together.
+Also, some keyboards like the Roli Seaboard send each note to a different channel, so those should be merged in any case.
 
 ## Each track records one audio stream, and all MIDI played on all devices
 

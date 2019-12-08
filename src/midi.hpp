@@ -87,7 +87,7 @@ class Port {
  * The manager for all MIDI state.
  */
 class Manager {
-	ProgramManager &programs;
+	Program::Manager &programs;
 	std::deque<Port> ports;
 	std::vector<struct pollfd> pfds;
 	std::thread thread;
@@ -99,7 +99,7 @@ class Manager {
 	void scan_ports();
 
 	public:
-	Manager(ProgramManager &programs);
+	Manager(Program::Manager &programs);
 	~Manager();
 
 	Manager(const Manager &other) = delete;

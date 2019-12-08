@@ -3,68 +3,56 @@
 #include "program-manager.hpp"
 #include "programs/simple.hpp"
 
-std::shared_ptr<Program> ProgramManager::activate(uint8_t MIDI_program, uint8_t bank_lsb, uint8_t bank_msb) {
-	// Search known programs
-	for (auto it = entries.begin(); it != entries.end();) {
-		auto &entry = *it;
+void Program::Manager::activate(std::shared_ptr<Program> &program) {
+	last_activated_program = program;
 
-		if (entry.MIDI_program == MIDI_program && entry.bank_lsb == bank_lsb && entry.bank_msb == bank_msb) {
-			return entry.program;
-		}
+	std::lock_guard lock(active_program_mutex);
 
-		if (entry.program.use_count() == 1) {
-			fprintf(stderr, "Removing old program %u %p\n", entry.MIDI_program, (void *)entry.program.get());
-			it = entries.erase(it);
-		} else
-			++it;
-	}
+	if (program->active)
+		return;
 
-	auto &entry = entries.emplace_back(MIDI_program, bank_lsb, bank_msb, std::make_shared<Simple>());
-	for (auto &program: active_programs) {
-		if (!program) {
-			program = entry.program.get();
-			break;
-		}
-	}
-	fprintf(stderr, "Activating new program %u %p\n", MIDI_program, (void *)entry.program.get());
-	return entry.program;
+	program->active = true;
+	active_programs.push_back(program);
 }
 
-void ProgramManager::change(std::shared_ptr<Program> &ptr, uint8_t MIDI_program, uint8_t bank_lsb, uint8_t bank_msb) {
-	if(ptr.use_count() == 2) {
-		Program *program = ptr.get();
+void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_program, uint8_t bank_lsb, uint8_t bank_msb) {
+	if (program) {
+		if (program->MIDI_program == MIDI_program && program->bank_lsb == bank_lsb && program->bank_msb == bank_msb)
+			return;
+
 		program->release_all();
-
-		for (auto &active: active_programs) {
-			if (active == program)
-				active = {};
-		}
 	}
 
-	ptr.reset();
-	ptr = activate(MIDI_program, bank_lsb, bank_msb);
+	program = std::make_shared<Simple>();
+	selected_program = program;
+	last_activated_program = program;
 }
 
-float ProgramManager::get_zero_crossing(float offset) {
-	if (!entries.empty())
-		return entries.front().program->get_zero_crossing(offset);
+float Program::Manager::get_zero_crossing(float offset) {
+	if (last_activated_program)
+		return last_activated_program->get_zero_crossing(offset);
 	else
 		return offset;
 }
 
-float ProgramManager::get_base_frequency() {
-	if (!entries.empty())
-		return entries.front().program->get_base_frequency();
+float Program::Manager::get_base_frequency() {
+	if (last_activated_program)
+		return last_activated_program->get_base_frequency();
 	else
 		return {};
 }
 
-void ProgramManager::render(Chunk &chunk) {
+void Program::Manager::render(Chunk &chunk) {
 	chunk.clear();
 
-	for (auto &program: active_programs) {
-		Program *p = program;
-		if (p)
-			p->render(chunk);
+	std::lock_guard lock(active_program_mutex);
+	for (auto it = active_programs.begin(); it != active_programs.end();) {
+		auto program = it->get();
+		if (!program->render(chunk)) {
+			program->active = false;
+			it = active_programs.erase(it);
+		} else {
+			++it;
+		}
 	}
 }

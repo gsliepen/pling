@@ -17,7 +17,7 @@
 #include "widgets/spectrum.hpp"
 
 static RingBuffer ringbuffer{16384};
-static ProgramManager programs;
+static Program::Manager programs;
 
 State state;
 MIDI::Manager MIDI::manager(programs);

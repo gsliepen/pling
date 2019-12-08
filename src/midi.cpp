@@ -84,7 +84,7 @@ void Port::panic() {
 	}
 }
 
-Manager::Manager(ProgramManager &programs): programs(programs) {
+Manager::Manager(Program::Manager &programs): programs(programs) {
 	// Add a self-pipe.
 	if (pipe(pipe_fds))
 		throw std::runtime_error("Could not create pipe");
@@ -168,7 +168,7 @@ void Manager::scan_ports() {
 				}
 
 				for(auto &channel: port.channels) {
-					channel.program = programs.activate(0);
+					programs.change(channel.program, 0);
 				}
 
 				pfds.emplace_back();
@@ -204,7 +204,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 	uint8_t chan = data[0] & 0xf;
 
 	Channel &channel = port.channels[chan];
-	Program *program = channel.program.get();
+	auto program = channel.program;
 	assert(program);
 
 	switch(type) {
@@ -227,6 +227,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		break;
 	case 0x9:
 		if (data[2]) {
+			programs.activate(program);
 			program->note_on(data[1], data[2]);
 			state.note_on(data[1], data[2]);
 		} else {
@@ -241,7 +242,7 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		if (data[1] == 7)
 			state.set_master_volume(data[2] ? dB_to_amplitude(data[2] / 127.0f * 48.0f - 48.0f) : 0);
 		else
-			program->control_change(data[1], data[2]);
+			programs.get_last_activated_program()->control_change(data[1], data[2]);
 		break;
 	case 0xc:
 		// program change
