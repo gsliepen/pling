@@ -65,8 +65,14 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	normal_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 13.0f);
 	big_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 26.0f);
 
-
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0);
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 	ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4{0.5f, 1.0f, 0.5f, 0.5f});
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, {0.5f, 0.5f});
