@@ -215,24 +215,31 @@ void UI::build_main_program() {
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.0f, 1.0f, 1.0f, 0.1f});
 	ImGui::Begin("Main program", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 	static const char *items[] = {
-		"000: Accoustic Grand Piano",
-		"001: Bright Accoustic Piano",
-		"002: Electric Grand Piano",
+		"001: Accoustic Grand Piano",
+		"002: Bright Accoustic Piano",
+		"003: Electric Grand Piano",
 		"...",
 	};
 
-	auto [port, channel] = state.get_active_channel();
+	const auto &[port, channel] = state.get_active_channel();
 
-	if (port) {
-		ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str());
-	} else {
-		ImGui::Selectable("No controller found!");
+	if (!port) {
+		ImGui::PushFont(big_font);
+		ImGui::Text("Connect a MIDI controller!");
+		ImGui::PopFont();
+		ImGui::End();
+		ImGui::PopStyleColor();
+		return;
 	}
 
-	ImGui::PushFont(big_font);
-	static int cur = 0;
+	ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str());
 
-	if(ImGui::Selectable(items[cur]))
+	static int cur = 0;
+	const auto &program = port->get_channel(channel).program;
+
+	ImGui::PushFont(big_font);
+
+	if(ImGui::Selectable(fmt::format("{:03d}: {}", program->get_MIDI_program() + 1, program->get_name()).c_str()))
 		ImGui::OpenPopup("Instrument");
 
 	ImGui::PopFont();
@@ -243,7 +250,7 @@ void UI::build_main_program() {
 		ImGui::EndPopup();
 	}
 
-	ImGui::Text("Synth: Simple");
+	ImGui::Text(fmt::format("Synth engine: {}", program->get_engine_name()).c_str());
 	ImGui::Separator();
 	ImGui::Selectable("Track: 01  Pattern: 01  Beat: 4/4  Tempo: 120");
 	ImGui::PushFont(big_font);

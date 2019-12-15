@@ -81,6 +81,10 @@ class Port {
 		std::lock_guard lock(last_command_mutex);
 		return last_command;
 	}
+
+	const Channel &get_channel(uint8_t channel) {
+		return channels[channel];
+	}
 };
 
 /**
@@ -106,6 +110,7 @@ class Manager {
 	Manager(Manager &&other) = delete;
 	Manager &operator=(const Manager &other) = delete;
 
+	void start();
 	void panic();
 
 	const std::deque<Port> &get_ports() const {

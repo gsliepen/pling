@@ -93,7 +93,9 @@ Manager::Manager(Program::Manager &programs): programs(programs) {
 	auto &pfd = pfds.back();
 	pfd.fd = pipe_fds[0];
 	pfd.events = POLLIN | POLLERR | POLLHUP;
+}
 
+void Manager::start() {
 	scan_ports();
 
 	thread = std::thread(&Manager::process_events, this);

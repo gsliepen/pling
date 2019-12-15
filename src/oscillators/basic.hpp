@@ -68,6 +68,10 @@ class Basic {
 		return phase;
 	}
 
+	float operator()() {
+		return phase;
+	}
+
 	float get_zero_crossing(float offset, float bend = 1.0) {
 		/* Going backwards from the current sample position + offset,
 		 * return the first zero crossing of the phase of this oscillator. */

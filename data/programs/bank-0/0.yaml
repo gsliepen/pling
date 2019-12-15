@@ -1,0 +1,6 @@
+name: Accoustic Grand Piano
+engine: Simple
+parameters:
+  amplitude_envelope: [0.01, 0, 1, 0.1]
+  filter_envelope: [0, 5, 0.05, 0.1]
+  filter: [8000, 1, 1]

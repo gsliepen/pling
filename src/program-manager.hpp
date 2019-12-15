@@ -5,20 +5,29 @@
 #include <atomic>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 
 #include "program.hpp"
 
 class Program::Manager {
 	// Added to by MIDI thread, deleted from by audio thread.
+	using EngineFactory = std::function<std::shared_ptr<Program>()>;
 	std::deque<std::shared_ptr<Program>> active_programs;
 	std::mutex active_program_mutex;
 
 	std::shared_ptr<Program> selected_program;
 	std::shared_ptr<Program> last_activated_program;
 
+	std::unordered_map<std::string, EngineFactory> engines;
+
 	public:
+	Manager() {fprintf(stderr, "Manager()\n");}
+	class Registration {};
+
 	/**
 	 * Activate a Program for a given MIDI program.
 	 *
@@ -39,4 +48,12 @@ class Program::Manager {
 	std::shared_ptr<Program> get_last_activated_program() {
 		return last_activated_program;
 	}
+
+	Registration register_engine(const std::string &name, EngineFactory factory) {
+		fprintf(stderr, "registering %s\n", name.c_str());
+		engines[name] = factory;
+		return {};
+	}
 };
+
+extern Program::Manager programs;

@@ -1,7 +1,11 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 #include "program-manager.hpp"
+
 #include "programs/simple.hpp"
+#include "yaml-cpp/yaml.h"
+
+#include <filesystem>
 
 void Program::Manager::activate(std::shared_ptr<Program> &program) {
 	last_activated_program = program;
@@ -23,7 +27,33 @@ void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_pr
 		program->release_all();
 	}
 
-	program = std::make_shared<Simple>();
+	std::filesystem::path filename = "../data/programs";
+	filename /= "bank-" + std::to_string(bank_lsb << 7 | bank_msb);
+	filename /= std::to_string(MIDI_program) + ".yaml";
+
+	try {
+		auto config = YAML::LoadFile(filename);
+
+		auto engine_name = config["engine"].as<std::string>();
+		if (const auto &it = engines.find(engine_name); it != engines.end()) {
+			program = it->second();
+			program->name = config["name"].as<std::string>();
+			program->load(config["parameters"]);
+			fprintf(stderr, "%s loaded\n", filename.c_str());
+		} else {
+			program = std::make_shared<Program>();
+			program->name = "Invalid program";
+		}
+	} catch(YAML::Exception &e) {
+		fprintf(stderr, "%s could not be parsed: %s\n", filename.c_str(), e.what());
+		program = std::make_shared<Program>();
+		program->name = "None";
+	}
+
+	program->MIDI_program = MIDI_program;
+	program->bank_lsb = bank_lsb;
+	program->bank_msb = bank_msb;
+
 	selected_program = program;
 	last_activated_program = program;
 }

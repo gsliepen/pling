@@ -15,5 +15,6 @@ gl = dependency('gl')
 glm = dependency('glm')
 sdl2 = dependency('SDL2')
 threads = dependency('threads')
+yaml_cpp = dependency('yaml-cpp')
 
 subdir('src')

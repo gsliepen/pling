@@ -14,28 +14,25 @@
 #include "../pling.hpp"
 #include "../program.hpp"
 
-class Simple: public Program {
+class KarplusStrong: public Program {
 	struct Parameters {
 		float bend{1};
 		float mod{0};
 		Envelope::ExponentialADSR::Parameters amplitude_envelope{};
 		Envelope::ExponentialADSR::Parameters filter_envelope{};
-		Filter::StateVariable::Parameters svf{};
-		Filter::StateVariable::Parameters::Type svf_type{};
-		float freq{sample_rate / 4};
-		float Q{};
-		float gain{};
+		float decay{0.9};
 	};
 
 	struct Voice {
 		Oscillator::Basic osc;
 		Oscillator::Basic lfo{10};
-		float amp;
 		Envelope::ExponentialADSR amplitude_envelope;
 		Envelope::ExponentialADSR filter_envelope;
-		Filter::StateVariable svf;
 
-		void init(uint8_t key, float freq, float vel);
+		uint32_t wp;
+		std::vector<float> buffer;
+
+		void init(Parameters &params, uint8_t key, float freq, float vel);
 		bool render(Chunk &chunk, Parameters &params);
 		void release();
 		bool is_active() {return amplitude_envelope.is_active();}

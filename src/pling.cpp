@@ -17,7 +17,7 @@
 #include "widgets/spectrum.hpp"
 
 static RingBuffer ringbuffer{16384};
-static Program::Manager programs;
+Program::Manager programs;
 
 State state;
 MIDI::Manager MIDI::manager(programs);
@@ -62,6 +62,7 @@ static void setup_audio() {
 int main(int argc, char *args[]) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	setup_audio();
+	MIDI::manager.start();
 
 	fftwf_import_wisdom_from_filename("pling.wisdom");
 	UI ui(ringbuffer);

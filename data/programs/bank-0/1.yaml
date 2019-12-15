@@ -1,0 +1,6 @@
+name: Guitar
+engine: Karplus-Strong
+parameters:
+  amplitude_envelope: [0, 0, 1, 0.1]
+  filter_envelope: [0, 0, 1, 0]
+  decay: 0.9
