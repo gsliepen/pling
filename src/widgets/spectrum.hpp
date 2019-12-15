@@ -50,9 +50,9 @@ class Spectrum {
 
 	public:
 	Spectrum(const RingBuffer &ringbuffer);
-	virtual ~Spectrum() final;
-	virtual void render(int screen_w, int screen_h) final;
-	virtual void build(int screen_w, int screen_h) final;
+	~Spectrum();
+	void render(int screen_w, int screen_h);
+	void build(int screen_w, int screen_h);
 };
 
 }

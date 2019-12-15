@@ -39,9 +39,9 @@ class Oscilloscope {
 
 	public:
 	Oscilloscope(const RingBuffer &ringbuffer);
-	virtual ~Oscilloscope() final;
-	virtual void render(int screen_w, int screen_h) final;
-	virtual void build(int screen_w, int screen_h) final;
+	~Oscilloscope();
+	void render(int screen_w, int screen_h);
+	void build(int screen_w, int screen_h);
 };
 
 }
