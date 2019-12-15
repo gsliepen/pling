@@ -78,9 +78,10 @@ by Dear ImGui, as this integrates very well with real-time OpenGL rendering.
 * Meson
 * SDL2
 
+On some platforms, you might also need to install CMake, in order for Meson to be able to find some dependencies.
 On Debian-based systems, you can install all the dependencies with the following command:
 
-    sudo apt install build-essential libasound2-dev libfftw3-dev libfmt-dev libglm-dev meson libsdl2-dev
+    sudo apt install build-essential libasound2-dev libfftw3-dev libfmt-dev libglm-dev meson libsdl2-dev cmake
 
 Dear ImGui is a submodule.  To ensure it is checked out, run the following
 commands in Pling's root directory:
