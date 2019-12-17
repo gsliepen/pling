@@ -241,10 +241,12 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		program->poly_pressure(data[1], data[2]);
 		break;
 	case 0xb:
-		if (data[1] == 7)
+		if (data[1] == 7) {
 			state.set_master_volume(data[2] ? dB_to_amplitude(data[2] / 127.0f * 48.0f - 48.0f) : 0);
-		else
+		} else {
 			programs.get_last_activated_program()->control_change(data[1], data[2]);
+			state.set_active_cc(data[1]);
+		}
 		break;
 	case 0xc:
 		// program change

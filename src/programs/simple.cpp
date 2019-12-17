@@ -104,7 +104,7 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 		break;
 	case 14:
 	case 40:
-		params.amplitude_envelope.set_sustain(cc_exponential(val, 0, 1e-2, 1, 1));
+		params.amplitude_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
 	case 15:
 	case 41:
@@ -120,7 +120,7 @@ void Simple::control_change(uint8_t control, uint8_t val) {
 		break;
 	case 18:
 	case 44:
-		params.filter_envelope.set_sustain(cc_exponential(val, 0, 1e-2, 1, 1));
+		params.filter_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
 	case 19:
 	case 45:
@@ -199,6 +199,41 @@ YAML::Node Simple::save() {
 	yaml["filter"].push_back(params.gain);
 
 	return yaml;
+}
+
+bool Simple::build_cc_widget(uint8_t control) {
+	switch(control) {
+	case 12:
+	case 38:
+	case 13:
+	case 39:
+	case 14:
+	case 40:
+	case 15:
+	case 41:
+		return params.amplitude_envelope.build_widget("Amplitude");
+	case 16:
+	case 42:
+	case 17:
+	case 43:
+	case 18:
+	case 44:
+	case 19:
+	case 45:
+		return params.filter_envelope.build_widget("Filter cutoff");
+	case 30:
+	case 60:
+	case 31:
+	case 61:
+	case 32:
+	case 62:
+	case 33:
+	case 63:
+		return params.svf.build_widget("Filter");
+
+	default:
+		return false;
+	}
 }
 
 static const std::string engine_name{"Simple"};

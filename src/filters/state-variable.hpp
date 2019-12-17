@@ -33,6 +33,8 @@ class StateVariable {
 		void set_freq(float freq) {
 			this->f = glm::clamp(2.0f * sinf(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 		}
+
+		bool build_widget(const std::string &name);
 	};
 
 	float filter(Parameters &params, float in) {

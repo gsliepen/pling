@@ -2,14 +2,20 @@
 
 #pragma once
 
-#include <cstdint>
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
+
 #include "midi.hpp"
 #include "program.hpp"
 
 class State {
+	using clock = std::chrono::steady_clock;
+
 	MIDI::Port *active_port{};
 	uint8_t active_channel{};
+	uint8_t active_cc{};
+	clock::time_point last_active_cc_change;
 	std::shared_ptr<Program> active_program{};
 	std::array<uint8_t, 128> keys;
 	int16_t bend;
@@ -20,10 +26,17 @@ class State {
 	void set_active_channel(MIDI::Port &port, uint8_t channel) {
 		active_port = &port;
 		active_channel = channel;
+		set_active_cc(0);
 	}
 
 	void set_active_program(std::shared_ptr<Program> program) {
 		active_program = program;
+		set_active_cc(0);
+	}
+
+	void set_active_cc(uint8_t cc) {
+		active_cc = cc;
+		last_active_cc_change = clock::now();
 	}
 
 	void note_on(uint8_t key, uint8_t vel) {
@@ -56,6 +69,14 @@ class State {
 
 	std::shared_ptr<Program> get_active_program() const {
 		return active_program;
+	}
+
+	uint8_t get_active_cc() const {
+		return active_cc;
+	}
+
+	clock::time_point get_last_active_cc_change() const {
+		return last_active_cc_change;
 	}
 
 	const std::array<uint8_t, 128> &get_keys() const {

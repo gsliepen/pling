@@ -76,7 +76,10 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 	ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4{0.5f, 1.0f, 0.5f, 0.5f});
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, {0.5f, 0.5f});
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, {1});
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {1, 1});
+
+	ImGui::GetStyle().AntiAliasedLines = false;
 
 	resize(w, h);
 
@@ -326,6 +329,21 @@ void UI::build() {
 	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 2.0f});
 	ImGui::SetNextWindowSize({gw * 2.0f, gh});
 	spectrum.build(w, h);
+
+	// Context sensitive widgets
+	const auto &[port, channel] = state.get_active_channel();
+
+	if (port) {
+		if (auto cc = state.get_active_cc(); cc) {
+			const auto &program = programs.get_last_activated_program();
+			ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
+			ImGui::SetNextWindowSize({gw * 2.0f, gh});
+			program->build_cc_widget(cc);
+
+			if (auto last_change = state.get_last_active_cc_change(); decltype(last_change)::clock::now() - last_change > std::chrono::seconds(10))
+				state.set_active_cc(0);
+		}
+	}
 
 	ImGui::End();
 

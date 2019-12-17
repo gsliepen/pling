@@ -2,6 +2,7 @@ imgui_incdir = include_directories('imgui')
 
 executable('pling',
 	'envelopes/exponential-adsr.cpp',
+	'filters/state-variable.cpp',
 	'imgui/imgui.cpp',
 	'imgui/imgui_draw.cpp',
 	'imgui/imgui_widgets.cpp',

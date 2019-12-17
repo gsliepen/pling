@@ -60,6 +60,8 @@ class Simple: public Program {
 	virtual float get_zero_crossing(float offset) final;
 	virtual float get_base_frequency() final;
 
+	virtual bool build_cc_widget(uint8_t control) final;
+
 	virtual bool load(const YAML::Node &yaml) final;
 	virtual YAML::Node save() final;
 	virtual const std::string &get_engine_name() final;

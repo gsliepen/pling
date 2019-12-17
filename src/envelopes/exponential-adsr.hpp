@@ -47,6 +47,24 @@ class ExponentialADSR {
 		void set_release(float release) {
 			this->release = exp10(-2 / (sample_rate * release));
 		}
+
+		float get_attack() {
+			return attack >= 1.0f ? 0.0f : 1.0f / (sample_rate * attack);
+		}
+
+		float get_decay() {
+			return -2.0f / log10(decay) / sample_rate;
+		}
+
+		float get_sustain() {
+			return sustain;
+		}
+
+		float get_release() {
+			return -2.0f / log10(release) / sample_rate;
+		}
+
+		bool build_widget(const std::string &name);
 	};
 
 	void init() {

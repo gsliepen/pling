@@ -40,6 +40,11 @@ class Program {
 	virtual void control_change(uint8_t control, uint8_t val) {};
 	virtual void release_all() {};
 
+	virtual bool build_cc_widget(uint8_t control) {
+		(void)control;
+		return false;
+	};
+
 	virtual bool load(const YAML::Node &yaml) {
 		return false;
 	};
