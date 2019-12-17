@@ -6,6 +6,8 @@
 #include "yaml-cpp/yaml.h"
 
 #include <filesystem>
+#include <fmt/ostream.h>
+#include <iostream>
 
 void Program::Manager::activate(std::shared_ptr<Program> &program) {
 	last_activated_program = program;
@@ -39,13 +41,12 @@ void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_pr
 			program = it->second();
 			program->name = config["name"].as<std::string>();
 			program->load(config["parameters"]);
-			fprintf(stderr, "%s loaded\n", filename.c_str());
 		} else {
 			program = std::make_shared<Program>();
 			program->name = "Invalid program";
 		}
 	} catch(YAML::Exception &e) {
-		fprintf(stderr, "%s could not be parsed: %s\n", filename.c_str(), e.what());
+		fmt::print(std::cerr, "{} could not be parsed: {}\n", filename, e.what());
 		program = std::make_shared<Program>();
 		program->name = "None";
 	}

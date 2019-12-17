@@ -25,7 +25,6 @@ class Program::Manager {
 	std::unordered_map<std::string, EngineFactory> engines;
 
 	public:
-	Manager() {fprintf(stderr, "Manager()\n");}
 	class Registration {};
 
 	/**
@@ -50,7 +49,6 @@ class Program::Manager {
 	}
 
 	Registration register_engine(const std::string &name, EngineFactory factory) {
-		fprintf(stderr, "registering %s\n", name.c_str());
 		engines[name] = factory;
 		return {};
 	}
