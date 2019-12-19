@@ -79,6 +79,8 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {1, 1});
 
+	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 32);
+
 	ImGui::GetStyle().AntiAliasedLines = false;
 
 	resize(w, h);
@@ -119,12 +121,6 @@ bool UI::process_events() {
 
 		case SDL_WINDOWEVENT:
 			process_window_event(ev.window);
-			break;
-
-		case SDL_KEYDOWN:
-			if (ev.key.keysym.sym == SDLK_p) {
-				paused = !paused;
-			}
 			break;
 		}
 	}
@@ -214,15 +210,63 @@ void UI::build_key_bar() {
 	ImGui::EndChild();
 }
 
+void UI::build_program_select() {
+	auto [active_port, active_channel] = state.get_active_channel();
+
+	if (!active_port) {
+		show_program_select = false;
+		return;
+	}
+
+	ImGui::SetNextWindowPos({16.0f, 16.0f});
+	ImGui::SetNextWindowSize({w - 32.0f, h - 32.0f});
+	if (!ImGui::Begin("Program selection", &show_program_select, ImGuiWindowFlags_NoSavedSettings) || ImGui::IsKeyPressed(SDL_SCANCODE_ESCAPE)) {
+		show_program_select = false;
+		ImGui::End();
+		return;
+	}
+
+	auto &program = active_port->get_channel(active_channel).program;
+	const auto current_MIDI_program = program->get_MIDI_program();
+
+	ImGui::PushFont(big_font);
+	ImGui::Columns(2);
+	if (ImGui::BeginCombo("Port", active_port->get_name().c_str())) {
+		for (auto &port: MIDI::manager.get_ports())
+			if (ImGui::Selectable(port.get_name().c_str(), &port == active_port))
+				state.set_active_channel(port, active_channel);
+		ImGui::EndCombo();
+	}
+
+	ImGui::NextColumn();
+	int selected_channel = active_channel + 1;
+	if (ImGui::SliderInt("Channel", &selected_channel, 1, 16))
+		state.set_active_channel(*active_port, selected_channel - 1);
+	ImGui::Columns();
+	ImGui::PopFont();
+
+	ImGui::Separator();
+
+	ImGui::BeginChild("Program list");
+	ImGui::Columns(4);
+
+	for (uint8_t n = 0; n < 128; ++n)
+	{
+		if (ImGui::Selectable(fmt::format("{:03d}: Program name", n + 1).c_str(), n == current_MIDI_program))
+			MIDI::manager.change(active_port, active_channel, n);
+
+		ImGui::NextColumn();
+	}
+
+	ImGui::Columns();
+	ImGui::EndChild();
+
+	ImGui::End();
+}
+
 void UI::build_main_program() {
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.0f, 1.0f, 1.0f, 0.1f});
 	ImGui::Begin("Main program", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
-	static const char *items[] = {
-		"001: Accoustic Grand Piano",
-		"002: Bright Accoustic Piano",
-		"003: Electric Grand Piano",
-		"...",
-	};
 
 	const auto &[port, channel] = state.get_active_channel();
 
@@ -235,23 +279,17 @@ void UI::build_main_program() {
 		return;
 	}
 
-	ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str());
+	if (ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str()))
+		show_program_select = true;
 
-	static int cur = 0;
 	const auto &program = port->get_channel(channel).program;
 
 	ImGui::PushFont(big_font);
 
-	if(ImGui::Selectable(fmt::format("{:03d}: {}", program->get_MIDI_program() + 1, program->get_name()).c_str()))
-		ImGui::OpenPopup("Instrument");
+	if(ImGui::Selectable(fmt::format("{:03d}: {}", program->get_MIDI_program() + 1, program->get_name()).c_str()) || ImGui::IsKeyPressed(SDL_SCANCODE_P))
+		show_program_select = true;
 
 	ImGui::PopFont();
-
-	if(ImGui::BeginPopup("Instrument")) {
-		ImGui::Text("Choose an instrument:");
-		ImGui::Combo("instrument", &cur, items, 3);
-		ImGui::EndPopup();
-	}
 
 	ImGui::Text(fmt::format("Synth engine: {}", program->get_engine_name()).c_str());
 	ImGui::Separator();
@@ -350,6 +388,10 @@ void UI::build() {
 	if (show_learn_window)
 		build_learn_window();
 
+	// Program select window
+	if (show_program_select)
+		build_program_select();
+
 	ImGui::Render();
 }
 
@@ -364,10 +406,6 @@ void UI::render() {
 void UI::run() {
 	while (process_events()) {
 		build();
-
-		if (!paused)
-			render();
-		else
-			usleep(1000);
+		render();
 	}
 }

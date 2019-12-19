@@ -113,12 +113,16 @@ class Manager {
 	void start();
 	void panic();
 
-	const std::deque<Port> &get_ports() const {
+	std::deque<Port> &get_ports() {
 		return ports;
 	};
 
 	const Port *get_last_active_port() const {
 		return last_active_port;
+	}
+
+	void change(Port *port, uint8_t channel, uint8_t MIDI_program, uint8_t bank_lsb = 0, uint8_t bank_msb = 0) {
+		programs.change(port->channels[channel].program, MIDI_program, bank_lsb, bank_msb);
 	}
 };
 
