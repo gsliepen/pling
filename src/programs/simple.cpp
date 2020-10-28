@@ -74,8 +74,8 @@ void Simple::note_on(uint8_t key, uint8_t vel) {
 	if (!voice)
 		return;
 
-	float freq = 440.0 * powf(2.0, (key - 69) / 12.0);
-	float amp = expf((vel - 127.) / 32.);
+	float freq = 440.0 * std::exp2((key - 69) / 12.0);
+	float amp = std::exp((vel - 127.) / 32.);
 	voice->init(key, freq, amp);
 }
 
@@ -84,7 +84,7 @@ void Simple::note_off(uint8_t key, uint8_t vel) {
 }
 
 void Simple::pitch_bend(int16_t value) {
-	params.bend = powf(2.0, value / 8192.0 / 6.0);
+	params.bend = exp2(value / 8192.0 / 6.0);
 }
 
 void Simple::channel_pressure(int8_t pressure) {}

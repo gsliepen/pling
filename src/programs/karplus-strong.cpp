@@ -111,7 +111,7 @@ void KarplusStrong::note_off(uint8_t key, uint8_t vel) {
 }
 
 void KarplusStrong::pitch_bend(int16_t value) {
-	params.bend = powf(2.0, value / 8192.0 / 6.0);
+	params.bend = std::exp2(value / 8192.0 / 6.0);
 }
 
 void KarplusStrong::channel_pressure(int8_t pressure) {}

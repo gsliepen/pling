@@ -27,12 +27,12 @@ class StateVariable {
 
 		void set(Type type, float freq, float Q) {
 			this->type = type;
-			this->f = glm::clamp(2.0f * sinf(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
+			this->f = glm::clamp(2.0f * std::sin(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 			this->q = glm::clamp(1.0f / Q, 0.0f, 1.0f);
 		}
 
 		void set_freq(float freq) {
-			this->f = glm::clamp(2.0f * sinf(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
+			this->f = glm::clamp(2.0f * std::sin(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 		}
 
 		bool build_widget(const std::string &name);

@@ -38,7 +38,7 @@ class ExponentialADSR {
 		}
 
 		void set_decay(float decay) {
-			this->decay = exp10(-2 / (decay * sample_rate));
+			this->decay = std::exp(-2.0 / (decay * sample_rate));
 		}
 
 		void set_sustain(float sustain) {
@@ -46,7 +46,7 @@ class ExponentialADSR {
 		}
 
 		void set_release(float release) {
-			this->release = exp10(-2 / (sample_rate * release));
+			this->release = std::exp(-2.0 / (sample_rate * release));
 		}
 
 		float get_attack() {
@@ -54,7 +54,7 @@ class ExponentialADSR {
 		}
 
 		float get_decay() {
-			return -2.0f / log10(decay) / sample_rate;
+			return -2.0f / std::log(decay) / sample_rate;
 		}
 
 		float get_sustain() {
@@ -62,7 +62,7 @@ class ExponentialADSR {
 		}
 
 		float get_release() {
-			return -2.0f / log10(release) / sample_rate;
+			return -2.0f / std::log(release) / sample_rate;
 		}
 
 		bool build_widget(const std::string &name);

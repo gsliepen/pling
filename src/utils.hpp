@@ -19,7 +19,7 @@ constexpr float cc_linear(uint8_t val, float min, float low, float high, float m
 }
 
 constexpr float cc_exponential(uint8_t val, float low, float high) {
-	return low * expf(val / 127.0f * logf(high / low));
+	return low * std::exp(val / 127.0f * std::log(high / low));
 }
 
 constexpr float cc_exponential(uint8_t val, float min, float low, float high, float max) {
@@ -28,7 +28,7 @@ constexpr float cc_exponential(uint8_t val, float min, float low, float high, fl
 	else if (val == 127)
 		return max;
 
-	return low * expf(val / 127.0f * logf(high / low));
+	return low * std::exp(val / 127.0f * std::log(high / low));
 }
 
 constexpr uint8_t cc_select(uint8_t val, uint8_t max) {
@@ -36,13 +36,13 @@ constexpr uint8_t cc_select(uint8_t val, uint8_t max) {
 }
 
 constexpr float key_to_frequency(float key) {
-	return 440.0f * exp2f((key - 69.0f) / 12.0f);
+	return 440.0f * std::exp2((key - 69.0f) / 12.0f);
 }
 
 constexpr float amplitude_to_dB(float value) {
-	return 20.0f * log10f(value);
+	return 20.0f * std::log10(value);
 }
 
 constexpr float dB_to_amplitude(float value) {
-	return powf(10.0f, value / 20.0f);
+	return std::pow(10.0f, value / 20.0f);
 }
