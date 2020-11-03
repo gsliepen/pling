@@ -66,6 +66,8 @@ bool Port::is_match(const snd_rawmidi_info_t *info) {
 }
 
 void Port::close() {
+	panic();
+
 	snd_rawmidi_close(in);
 
 	if (out)
