@@ -1,0 +1,35 @@
+# There are many rebranded versions of this controller.
+brand: Hangzhou Worlde
+name: EasyKey
+type: keyboard
+keys: 25
+siblings: [0218:0402, 0218:0403]
+
+mapping:
+  # CC mode keys, ignore them by default as there is no intuitive mapping
+  - 1/cc/12: ignore
+  - 1/cc/13: ignore
+  - 1/cc/14: ignore
+  - 1/cc/15: ignore
+  - 1/cc/16: ignore
+  - 1/cc/17: ignore
+  - 1/cc/18: ignore
+  - 1/cc/19: ignore
+  - 1/cc/20: ignore
+  - 1/cc/21: ignore
+  - 1/cc/22: ignore
+  - 1/cc/23: ignore
+  - 1/cc/24: ignore
+  - 1/cc/25: ignore
+  - 1/cc/26: ignore
+  - 1/cc/27: ignore
+  - 1/cc/28: ignore
+  - 1/cc/29: ignore
+  - 1/cc/30: ignore
+  - 1/cc/31: ignore
+  - 1/cc/80: ignore
+  - 1/cc/81: ignore
+  - 1/cc/82: ignore
+  - 1/cc/83: ignore
+  - 1/cc/84: ignore
+  - 1/cc/85: ignore

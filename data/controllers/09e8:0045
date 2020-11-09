@@ -1,0 +1,119 @@
+brand: AKAI
+model: MPK Mini mkII
+type: [pots, pads]
+pots: 8
+pads: 8
+banks: 2
+
+mapping:
+  # --- Program 1 ---
+  # Pads alias keys
+  # CC mode
+  - 1/cc/20: button/1
+  - 1/cc/21: button/2
+  - 1/cc/22: button/3
+  - 1/cc/23: button/4
+  - 1/cc/24: button/5
+  - 1/cc/25: button/6
+  - 1/cc/26: button/7
+  - 1/cc/27: button/8
+  # pots
+  - 1/cc/1: pot/1
+  - 1/cc/2: pot/2
+  - 1/cc/3: pot/3
+  - 1/cc/4: pot/4
+  - 1/cc/5: pot/5
+  - 1/cc/6: pot/6
+  - 1/cc/7: pot/7
+  - 1/cc/8: pot/8
+  
+  # -- Program 2 ---
+  # Pads
+  - 10/key/37: pad/1
+  - 10/key/38: pad/2
+  - 10/key/39: pad/3
+  - 10/key/40: pad/4
+  - 10/key/41: pad/5
+  - 10/key/42: pad/6
+  - 10/key/43: pad/7
+  - 10/key/44: pad/8
+  # CC mode
+  - 10/cc/0: button/1
+  - 10/cc/1: button/2
+  - 10/cc/2: button/3
+  - 10/cc/3: button/4
+  - 10/cc/4: button/5
+  - 10/cc/5: button/6
+  - 10/cc/6: button/7
+  - 10/cc/7: button/8
+  # pots
+  - 1/cc/20: pot/1
+  - 1/cc/21: pot/2
+  - 1/cc/22: pot/3
+  - 1/cc/23: pot/4
+  - 1/cc/16: pot/5
+  - 1/cc/17: pot/6
+  - 1/cc/18: pot/7
+  - 1/cc/19: pot/8
+  
+  # -- Program 3 ---
+  # Pads
+  - 10/key/48: pad/1
+  - 10/key/50: pad/2
+  - 10/key/52: pad/3
+  - 10/key/53: pad/4
+  - 10/key/55: pad/5
+  - 10/key/57: pad/6
+  - 10/key/59: pad/7
+  - 10/key/60: pad/8
+  # CC mode
+  - 10/cc/0: button/1
+  - 10/cc/1: button/2
+  - 10/cc/2: button/3
+  - 10/cc/3: button/4
+  - 10/cc/4: button/5
+  - 10/cc/5: button/6
+  - 10/cc/6: button/7
+  - 10/cc/7: button/8
+  # pots
+  - 1/cc/20: pot/1
+  - 1/cc/21: pot/2
+  - 1/cc/22: pot/3
+  - 1/cc/23: pot/4
+  - 1/cc/16: pot/5
+  - 1/cc/17: pot/6
+  - 1/cc/18: pot/7
+  - 1/cc/19: pot/8
+  
+  # -- Program 4 ---
+  # Pads
+  - 10/key/37: pad/1
+  - 10/key/38: pad/2
+  - 10/key/39: pad/3
+  - 10/key/40: pad/4
+  - 10/key/41: pad/5
+  - 10/key/42: pad/6
+  - 10/key/43: pad/7
+  - 10/key/44: pad/8
+  # CC mode
+  - 10/cc/0: button/1
+  - 10/cc/1: button/2
+  - 10/cc/2: button/3
+  - 10/cc/3: button/4
+  - 10/cc/4: button/5
+  - 10/cc/5: button/6
+  - 10/cc/6: button/7
+  - 10/cc/7: button/8
+  # pots
+  - 1/cc/20: pot/1
+  - 1/cc/21: pot/2
+  - 1/cc/22: pot/3
+  - 1/cc/23: pot/4
+  - 1/cc/24: pot/5
+  - 1/cc/25: pot/6
+  - 1/cc/26: pot/7
+  - 1/cc/27: pot/8
+  # others
+  - 1/cc/31: modulation
+  - 1/cc/30: aftertouch
+  

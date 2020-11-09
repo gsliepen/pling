@@ -1,0 +1,65 @@
+brand: Behringer
+model: CMD STUDIO 2a
+type: [deck]
+decks: 2
+
+mapping:
+  # Global controls
+  - 1/key/34: vinyl
+  - 1/key/35: mode
+  - 1/key/36: up
+  - 1/key/37: folder
+  - 1/key/38: file
+  - 1/key/39: down
+  - 1/key/22: cue/1
+  - 1/key/23: load/1
+  - 1/key/70: cue/2
+  - 1/key/71: load/2
+  - 1/cc/32: fader/1
+  - 1/cc/33: pot/1
+  # --- Left deck ---
+  - 1/cc,inf/5: 1/pitch
+  - 1/key/6: 1/pitch-
+  - 1/key/7: 1/pitch+
+  - 1/key/4: 1/sync
+  - 1/key/8: 1/assign/a
+  - 1/key/9: 1/assign/b
+  - 1/key/10: 1/cue/1
+  - 1/key/11: 1/cue/2
+  - 1/key/12: 1/cue/3
+  - 1/key/13: 1/cue/4
+  - 1/key/14: 1/sample/1
+  - 1/key/15: 1/sample/2
+  - 1/key/17: 1/sample/3
+  - 1/key/18: 1/sample/4
+  - 1/key/1: 1/cue
+  - 1/key/2: 1/play
+  - 1/cc/3: 1/jog
+  - 1/key/3: 1/hold
+  - 1/cc/24: 1/fader/1
+  - 1/cc/19: 1/pot/1
+  - 1/cc/20: 1/pot/2
+  - 1/cc/21: 1/pot/3
+  # --- Right deck ---
+  - 1/cc,inf/53: 2/pitch
+  - 1/key/54: 2/pitch-
+  - 1/key/55: 2/pitch+
+  - 1/key/52: 2/sync
+  - 1/key/56: 2/assign/a
+  - 1/key/57: 2/assign/b
+  - 1/key/58: 2/cue/1
+  - 1/key/59: 2/cue/2
+  - 1/key/60: 2/cue/3
+  - 1/key/61: 2/cue/4
+  - 1/key/61: 2/sample/1
+  - 1/key/63: 2/sample/2
+  - 1/key/65: 2/sample/3
+  - 1/key/66: 2/sample/4
+  - 1/key/49: 2/cue
+  - 1/key/50: 2/play
+  - 1/cc/51: 2/jog
+  - 1/key/51: 2/hold
+  - 1/cc/72: 2/fader/1
+  - 1/cc/67: 2/pot/1
+  - 1/cc/68: 2/pot/2
+  - 1/cc/69: 2/pot/3

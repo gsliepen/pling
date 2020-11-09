@@ -1,0 +1,59 @@
+# There are many rebranded versions of this controller.
+brand: Hangzhou Worlde
+name: EasyControl
+type: [pots, faders, buttons, transport]
+faders: 9
+pots: 9
+buttons: 9
+banks: 4
+siblings: [0218:0401, 0218:0403]
+
+mapping:
+  # Faders
+  - 1/cc/12: fader/1
+  - 1/cc/13: fader/2
+  - 1/cc/14: fader/3
+  - 1/cc/15: fader/4
+  - 1/cc/16: fader/5
+  - 1/cc/17: fader/6
+  - 1/cc/18: fader/7
+  - 1/cc/19: fader/8
+  - 1/cc/20: fader/master
+  # Buttons
+  - 1/cc/21: button/1
+  - 1/cc/22: button/2
+  - 1/cc/23: button/3
+  - 1/cc/24: button/4
+  - 1/cc/25: button/5
+  - 1/cc/26: button/6
+  - 1/cc/27: button/7
+  - 1/cc/28: button/8
+  - 1/cc/29: button/master
+  # Pots
+  - 1/cc/30: pot/1
+  - 1/cc/31: pot/2
+  - 1/cc/32: pot/3
+  - 1/cc/33: pot/4
+  - 1/cc/34: pot/5
+  - 1/cc/35: pot/6
+  - 1/cc/36: pot/7
+  - 1/cc/37: pot/8
+  - 1/cc/38: pot/master
+  # Transport
+  - 1/cc/102: loop
+  - 1/cc/103: rewind
+  - 1/cc/104: forward
+  - 1/cc/105: stop
+  - 1/cc/106: play
+  - 1/cc/107: record
+  # Other controls
+  - sysex/4240000104005f4f00: bank/1
+  - sysex/4240000104005f4f01: bank/2
+  - sysex/4240000104005f4f02: bank/3
+  - sysex/4240000104005f4f03: bank/4
+  - 1/cc/109: track-
+  - 1/cc/110: track+
+  - 1/cc/67: pattern-
+  - 1/cc/64: pattern+
+  - 1/cc/10: tempo
+  - 1/cc/9: crossfade

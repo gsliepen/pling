@@ -1,0 +1,128 @@
+brand: Nektar
+model: Impulse 88+
+type: [keys, pots, faders, buttons, transport, pads]
+faders: 9
+pots: 8
+buttons: 9
+banks: 7
+pads: 8
+
+mapping:
+# --- Mixer ---
+# Faders
+- 16/cc/12: fader/1
+- 16/cc/13: fader/2
+- 16/cc/14: fader/3
+- 16/cc/15: fader/4
+- 16/cc/16: fader/5
+- 16/cc/17: fader/6
+- 16/cc/18: fader/7
+- 16/cc/19: fader/8
+- 16/cc/20: fader/master
+# Buttons
+- 16/cc/21: button/1, bank-
+- 16/cc/22: button/2, bank+
+- 16/cc/23: button/3
+- 16/cc/24: button/4
+- 16/cc/25: button/5
+- 16/cc/26: button/6
+- 16/cc/27: button/7
+- 16/cc/28: button/8
+- 16/cc/29: button/master
+# Pots
+- 16/cc/30: pot/1
+- 16/cc/31: pot/2
+- 16/cc/32: pot/3
+- 16/cc/33: pot/4
+- 16/cc/34: pot/5
+- 16/cc/35: pot/6
+- 16/cc/36: pot/7
+- 16/cc/37: pot/8
+# --- Instrument
+# Faders
+- 16/cc/38: fader/1
+- 16/cc/39: fader/2
+- 16/cc/40: fader/3
+- 16/cc/41: fader/4
+- 16/cc/42: fader/5
+- 16/cc/43: fader/6
+- 16/cc/44: fader/7
+- 16/cc/45: fader/8
+- 16/cc/46: fader/master
+# Buttons
+- 16/cc/47: button/1, bank-
+- 16/cc/48: button/2, bank+
+- 16/cc/49: button/3
+- 16/cc/50: button/4
+- 16/cc/51: button/5
+- 16/cc/52: button/6
+- 16/cc/53: button/7
+- 16/cc/54: button/8
+- 16/cc/55: button/master
+# Pots
+- 16/cc/56: pot/1
+- 16/cc/57: pot/2
+- 16/cc/58: pot/3
+- 16/cc/59: pot/4
+- 16/cc/60: pot/5
+- 16/cc/61: pot/6
+- 16/cc/62: pot/7
+- 16/cc/63: pot/8
+# --- Preset5 
+# Faders
+- 1/cc/80: fader/1
+- 1/cc/81: fader/2
+- 1/cc/82: fader/3
+- 1/cc/83: fader/4
+- 1/cc/85: fader/5
+- 1/cc/86: fader/6
+- 1/cc/87: fader/7
+- 1/cc/88: fader/8
+- 1/cc/3: fader/master
+# Buttons
+- 1/cc/66: button/1, bank-
+- 1/cc/67: button/2, bank+
+- 1/cc/68: button/3
+- 1/cc/69: button/4
+- 1/cc/98: button/5
+- 1/cc/99: button/6
+- 1/cc/100: button/7
+- 1/cc/101: button/8
+- 1/cc/65: button/master
+# Pots
+- 1/cc/89: pot/1
+- 1/cc/90: pot/2
+- 1/cc/96: pot/3
+- 1/cc/97: pot/4
+- 1/cc/116: pot/5
+- 1/cc/117: pot/6
+- 1/cc/118: pot/7
+- 1/cc/119: pot/8
+# Transport
+- 1/cc/102: loop, home
+- 1/cc/103: rewind, set-left
+- 1/cc/104: forward, set-right
+- 1/cc/105: stop, undo
+- 1/cc/106: play, click
+- 1/cc/107: record, mode
+# Other controls
+- 1/cc/108: shift
+- 1/cc/109: track-
+- 1/cc/110: track+
+- 1/cc/111: pattern-
+- 1/cc/112: pattern+
+# Daw controls
+- 1/cc/113: mixer
+- 1/cc/114: instrument
+- 1/cc/115: preset
+- 1/cc/117: clips
+- 1/cc/118: scenes
+- 1/cc/119: page
+
+on-start:
+# Enable DAW mode
+- sysex/F00001777F010500010F010267F7
+
+on-exit:
+# Disable DAW mode
+- sysex/F00001777F010500010F010069F7
