@@ -3,17 +3,17 @@
 
 #include "ui.hpp"
 
-#include <glm/glm.hpp>
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_opengl3.h"
-#include "imgui_impl_sdl.h"
-#include "state.hpp"
-
 #include <fmt/format.h>
-#include <unistd.h>
+#include <glm/glm.hpp>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
+#include <unistd.h>
+
 #include "config.hpp"
+#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui/backends/imgui_impl_sdl.h"
+#include "imgui/imgui.h"
+#include "state.hpp"
 
 UI::Window::Window(float w, float h) {
 	// Create the main SDL window
