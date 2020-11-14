@@ -17,4 +17,8 @@ sdl2 = dependency('SDL2')
 threads = dependency('threads')
 yaml_cpp = dependency('yaml-cpp')
 
+config_data = configuration_data()
+config_data.set_quoted('DATADIR', get_option('prefix') / get_option('datadir'))
+config_data.set_quoted('VERSION', meson.project_version())
+
 subdir('src')

@@ -10,6 +10,7 @@
 #include <SDL2/SDL.h>
 #include <set>
 
+#include "config.hpp"
 #include "midi.hpp"
 #include "program-manager.hpp"
 #include "ui.hpp"
@@ -19,7 +20,7 @@
 
 static RingBuffer ringbuffer{16384};
 Program::Manager programs;
-YAML::Node global_config;
+Config config;
 
 State state;
 MIDI::Manager MIDI::manager(programs);
@@ -53,7 +54,7 @@ static void setup_audio() {
 	want.samples = chunk_size;
 	want.callback = audio_callback;
 
-	auto name = global_config["audio_device"].as<std::string>("");
+	auto name = config["audio_device"].as<std::string>("");
 
 	SDL_AudioDeviceID dev = SDL_OpenAudioDevice(name.c_str(), 0, &want, &have, 0);
 
@@ -68,15 +69,11 @@ static void setup_audio() {
 	SDL_PauseAudioDevice(dev, 0);
 }
 
-static void read_config(const std::filesystem::path &filename) {
-	global_config = YAML::LoadFile(filename);
-}
-
 int main(int argc, char *args[]) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-
-	char *pref_path = SDL_GetPrefPath(NULL, "pling");
-	read_config(std::filesystem::path(pref_path) / "config.yaml");
+	auto pref_path = SDL_GetPrefPath(NULL, "pling");
+	config.init(pref_path);
+	SDL_free(pref_path);
 
 	setup_audio();
 	MIDI::manager.start();
@@ -87,6 +84,5 @@ int main(int argc, char *args[]) {
 	ui.run();
 
 	fftwf_export_wisdom_to_filename("pling.wisdom");
-	SDL_free(pref_path);
 	SDL_Quit();
 }

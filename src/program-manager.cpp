@@ -2,12 +2,13 @@
 
 #include "program-manager.hpp"
 
-#include "programs/simple.hpp"
-#include "yaml-cpp/yaml.h"
-
 #include <filesystem>
 #include <fmt/ostream.h>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
+
+#include "config.hpp"
+#include "programs/simple.hpp"
 
 void Program::Manager::activate(std::shared_ptr<Program> &program) {
 	last_activated_program = program;
@@ -29,24 +30,25 @@ void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_pr
 		program->release_all();
 	}
 
-	std::filesystem::path filename = "../data/programs";
+	std::filesystem::path filename = "programs";
 	filename /= "bank-" + std::to_string(bank_lsb << 7 | bank_msb);
 	filename /= std::to_string(MIDI_program) + ".yaml";
+	auto path = config.get_load_path(filename);
 
 	try {
-		auto config = YAML::LoadFile(filename);
+		auto program_config = YAML::LoadFile(path);
 
-		auto engine_name = config["engine"].as<std::string>();
+		auto engine_name = program_config["engine"].as<std::string>();
 		if (const auto &it = engines.find(engine_name); it != engines.end()) {
 			program = it->second();
-			program->name = config["name"].as<std::string>();
-			program->load(config["parameters"]);
+			program->name = program_config["name"].as<std::string>();
+			program->load(program_config["parameters"]);
 		} else {
 			program = std::make_shared<Program>();
 			program->name = "Invalid program";
 		}
 	} catch(YAML::Exception &e) {
-		fmt::print(std::cerr, "{} could not be parsed: {}\n", filename, e.what());
+		fmt::print(std::cerr, "{} could not be parsed: {}\n", path, e.what());
 		program = std::make_shared<Program>();
 		program->name = "None";
 	}

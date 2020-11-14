@@ -10,8 +10,12 @@
 #include <cstddef>
 #include <vector>
 
+#include "config.hpp"
+
 static const float sample_rate = 48000;
 static const size_t chunk_size = 128;
+
+extern Config config;
 
 struct Chunk {
 	std::array<float, chunk_size> samples;

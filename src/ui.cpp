@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
+#include "config.hpp"
 
 UI::Window::Window(float w, float h) {
 	// Create the main SDL window
@@ -62,8 +63,8 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	ImGui_ImplOpenGL3_Init("#version 100");
 
 	ImGuiIO &io = ImGui::GetIO();
-	normal_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 13.0f);
-	big_font = io.Fonts->AddFontFromFileTTF("../src/imgui/misc/fonts/DroidSans.ttf", 26.0f);
+	normal_font = io.Fonts->AddFontFromFileTTF(config.get_load_path("fonts/DroidSans.ttf").c_str(), 13.0f);
+	big_font = io.Fonts->AddFontFromFileTTF(config.get_load_path("fonts/DroidSans.ttf").c_str(), 26.0f);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0);

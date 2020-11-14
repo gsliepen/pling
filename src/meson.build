@@ -1,6 +1,12 @@
 imgui_incdir = include_directories('imgui')
 
+configure_file(
+	output: 'config.h',
+	configuration: config_data
+)
+
 executable('pling',
+	'config.cpp',
 	'envelopes/exponential-adsr.cpp',
 	'filters/state-variable.cpp',
 	'imgui/imgui.cpp',
