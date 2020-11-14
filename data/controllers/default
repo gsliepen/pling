@@ -1,0 +1,17 @@
+---
+# Tries to map GM level 2 controls to reasonable defaults
+brand: MMA
+model: General MIDI Level 2
+
+mapping:
+  # Channel volume
+  1/cc/7: fader/master
+  # Channel pan
+  1/cc/11: pot/master
+  # Envelope
+  1/cc/73: fader/1
+  1/cc/75: fader/3
+  1/cc/72: fader/2
+  # Filter
+  1/cc/74: pot/1
+  1/cc/71: pot/2
