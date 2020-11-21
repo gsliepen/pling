@@ -13,11 +13,17 @@ void Config::init(const fs::path &pref_path) {
 }
 
 fs::path Config::get_load_path(const fs::path &filename) {
-	auto local_path = data_dir / filename;
-
-	if (fs::exists(local_path))
+	if (auto local_path = local_dir / filename; fs::exists(local_path))
 		return local_path;
+	else
+		return data_dir / filename;
+}
 
-	return data_dir / filename;
+fs::path Config::get_save_path(const fs::path &filename) {
+	auto path = local_dir / filename;
+	if (!fs::exists(path)) {
+		fs::create_directories(path.parent_path());
+	}
+	return path;
 }
 
