@@ -21,6 +21,7 @@
 static RingBuffer ringbuffer{16384};
 Program::Manager programs;
 Config config;
+float sample_rate = 48000;
 
 State state;
 MIDI::Manager MIDI::manager(programs);
@@ -48,7 +49,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 static void setup_audio() {
 	SDL_AudioSpec want{}, have{};
 
-	want.freq = sample_rate;
+	want.freq = config["sample_rate"].as<int>(48000);
 	want.format = AUDIO_S16;
 	want.channels = 2;
 	want.samples = chunk_size;
@@ -65,6 +66,13 @@ static void setup_audio() {
 
 	if (!dev)
 		throw std::runtime_error(SDL_GetError());
+
+	if (have.samples != chunk_size) {
+		throw std::runtime_error("Could not get requested audio chunk size");
+	}
+
+	sample_rate = have.freq;
+	std::cerr << sample_rate << "\n";
 
 	SDL_PauseAudioDevice(dev, 0);
 }

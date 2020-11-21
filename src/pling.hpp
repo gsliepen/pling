@@ -12,7 +12,7 @@
 
 #include "config.hpp"
 
-static const float sample_rate = 48000;
+extern float sample_rate;
 static const size_t chunk_size = 128;
 
 extern Config config;
