@@ -1,7 +1,7 @@
 ---
 # There are many rebranded versions of this controller.
 brand: Hangzhou Worlde
-name: EasyControl
+model: EasyControl
 type: [pots, faders, buttons, transport]
 faders: 9
 pots: 9

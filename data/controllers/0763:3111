@@ -1,0 +1,9 @@
+---
+brand: M-Audio
+model: Keystation Mini 32 MK3
+type: [keyboard, pots]
+keys: 32
+pots: 1
+
+mapping:
+  1/cc/7: fader/master

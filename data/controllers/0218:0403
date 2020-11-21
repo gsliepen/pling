@@ -1,25 +1,25 @@
 ---
 # There are many rebranded versions of this controller.
 brand: Hangzhou Worlde
-name: EasyPad
+model: EasyPad
 type: [pads, transport]
 pads: 12
 siblings: [0218:0401, 0218:0402]
 
 mapping:
   # Pads
-  10/key/39: pad/1,1
-  10/key/48: pad/2,1
-  10/key/45: pad/3,1
-  10/key/43: pad/4,1
-  10/key/51: pad/5,1
-  10/key/49: pad/6,1
-  10/key/36: pad/1,2
-  10/key/38: pad/2,2
-  10/key/40: pad/3,2
-  10/key/42: pad/4,2
-  10/key/44: pad/5,2
-  10/key/46: pad/6,2
+  10/key/39: pad/1/1
+  10/key/48: pad/2/1
+  10/key/45: pad/3/1
+  10/key/43: pad/4/1
+  10/key/51: pad/5/1
+  10/key/49: pad/6/1
+  10/key/36: pad/1/2
+  10/key/38: pad/2/2
+  10/key/40: pad/3/2
+  10/key/42: pad/4/2
+  10/key/44: pad/5/2
+  10/key/46: pad/6/2
   # Transport
   10/cc/49: loop
   10/cc/47: rewind
@@ -33,3 +33,5 @@ mapping:
   sysex/4240000104005f4f02: bank/3
   sysex/4240000104005f4f03: bank/4
   sysex/7f7f040100nn: ignore
+  10/key/1: ignore
+  10/key/2: ignore

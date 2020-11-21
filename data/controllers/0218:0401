@@ -1,8 +1,8 @@
 ---
 # There are many rebranded versions of this controller.
 brand: Hangzhou Worlde
-name: EasyKey
-type: keyboard
+model: EasyKey
+type: [keyboard]
 keys: 25
 siblings: [0218:0402, 0218:0403]
 
