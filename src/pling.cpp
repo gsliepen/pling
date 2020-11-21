@@ -78,11 +78,11 @@ int main(int argc, char *args[]) {
 	setup_audio();
 	MIDI::manager.start();
 
-	fftwf_import_wisdom_from_filename("pling.wisdom");
+	fftwf_import_wisdom_from_filename(config.get_cache_path("fft.wisdom").c_str());
 	UI ui(ringbuffer);
 
 	ui.run();
 
-	fftwf_export_wisdom_to_filename("pling.wisdom");
+	fftwf_export_wisdom_to_filename(config.get_cache_path("fft.wisdom").c_str());
 	SDL_Quit();
 }
