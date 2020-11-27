@@ -9,7 +9,8 @@
 #include "midi.hpp"
 #include "program.hpp"
 
-class State {
+class State
+{
 	using clock = std::chrono::steady_clock;
 
 	MIDI::Port *active_port{};
@@ -38,75 +39,92 @@ class State {
 public:
 	void process_control(MIDI::Control control, MIDI::Port &port, const uint8_t *data, ssize_t len);
 
-	void set_active_channel(MIDI::Port &port, uint8_t channel) {
+	void set_active_channel(MIDI::Port &port, uint8_t channel)
+	{
 		active_port = &port;
 		active_channel = channel;
 		set_active_cc(0);
 	}
 
-	void set_active_program(std::shared_ptr<Program> program) {
+	void set_active_program(std::shared_ptr<Program> program)
+	{
 		active_program = program;
 		set_active_cc(0);
 	}
 
-	void set_active_cc(uint8_t cc) {
+	void set_active_cc(uint8_t cc)
+	{
 		active_cc = cc;
 		last_active_cc_change = clock::now();
 	}
 
-	void note_on(uint8_t key, uint8_t vel) {
+	void note_on(uint8_t key, uint8_t vel)
+	{
 		keys[key] = vel;
 	}
 
-	void note_off(uint8_t key) {
+	void note_off(uint8_t key)
+	{
 		keys[key] = 0;
 	}
 
-	void release_all() {
+	void release_all()
+	{
 		keys.fill(0);
 	}
 
-	void set_bend(int16_t value) {
+	void set_bend(int16_t value)
+	{
 		bend = value;
 	}
 
-	void set_master_volume(float value) {
+	void set_master_volume(float value)
+	{
 		master_volume = value;
 	}
 
-	void set_learn_midi(bool value) {
+	void set_learn_midi(bool value)
+	{
 		learn_midi = value;
 	}
 
-	std::pair<MIDI::Port *, uint8_t> get_active_channel() const {
+	std::pair<MIDI::Port *, uint8_t> get_active_channel() const
+	{
 		return std::make_pair(active_port, active_channel);
 	}
 
-	std::shared_ptr<Program> get_active_program() const {
+	std::shared_ptr<Program> get_active_program() const
+	{
 		return active_program;
 	}
 
-	uint8_t get_active_cc() const {
+	uint8_t get_active_cc() const
+	{
 		return active_cc;
 	}
 
-	clock::time_point get_last_active_cc_change() const {
+	clock::time_point get_last_active_cc_change() const
+	{
 		return last_active_cc_change;
 	}
 
-	const std::array<uint8_t, 128> &get_keys() const {
+	const std::array<uint8_t, 128> &get_keys() const
+	{
 		return keys;
 	}
 
-	int16_t get_bend() const {
+	int16_t get_bend() const
+	{
 		return bend;
 	}
 
-	float get_master_volume() const {
+	float get_master_volume() const
+	{
 		return master_volume;
 	}
 
-	bool get_learn_midi() const {
+	bool get_learn_midi() const
+	{
 		return learn_midi;
 	}
 };

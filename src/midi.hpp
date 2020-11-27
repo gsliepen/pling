@@ -16,7 +16,8 @@
 #include "controller.hpp"
 #include "program-manager.hpp"
 
-namespace MIDI {
+namespace MIDI
+{
 
 /**
  * The state for a MIDI channel.
@@ -28,7 +29,8 @@ struct Channel {
 /**
  * A MIDI port.
  */
-class Port {
+class Port
+{
 	friend class Manager;
 
 	snd_rawmidi_t *in{};
@@ -46,7 +48,7 @@ class Port {
 	Controller controller;
 	Channel channels[16];
 
-	public:
+public:
 	Port(const snd_rawmidi_info_t *info);
 	~Port();
 
@@ -60,19 +62,23 @@ class Port {
 
 	void panic();
 
-	std::string get_name() const {
+	std::string get_name() const
+	{
 		return name;
 	}
 
-	const std::string &get_hwid() const {
+	const std::string &get_hwid() const
+	{
 		return hwid;
 	}
 
-	bool is_open() const {
+	bool is_open() const
+	{
 		return in;
 	}
 
-	void set_last_command(const uint8_t *data, ssize_t len) {
+	void set_last_command(const uint8_t *data, ssize_t len)
+	{
 		std::lock_guard lock(last_command_mutex);
 
 		if (len < 0) {
@@ -83,12 +89,14 @@ class Port {
 		}
 	}
 
-	std::vector<uint8_t> get_last_command() const {
+	std::vector<uint8_t> get_last_command() const
+	{
 		std::lock_guard lock(last_command_mutex);
 		return last_command;
 	}
 
-	const Channel &get_channel(uint8_t channel) {
+	const Channel &get_channel(uint8_t channel)
+	{
 		return channels[channel];
 	}
 };
@@ -96,19 +104,20 @@ class Port {
 /**
  * The manager for all MIDI state.
  */
-class Manager {
+class Manager
+{
 	Program::Manager &programs;
 	std::deque<Port> ports;
 	std::vector<struct pollfd> pfds;
 	std::thread thread;
-	int pipe_fds[2]{-1, -1};
+	int pipe_fds[2] {-1, -1};
 	Port *last_active_port{};
 
 	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
 	void process_events();
 	void scan_ports();
 
-	public:
+public:
 	Manager(Program::Manager &programs);
 	~Manager();
 
@@ -119,15 +128,18 @@ class Manager {
 	void start();
 	void panic();
 
-	std::deque<Port> &get_ports() {
+	std::deque<Port> &get_ports()
+	{
 		return ports;
 	};
 
-	const Port *get_last_active_port() const {
+	const Port *get_last_active_port() const
+	{
 		return last_active_port;
 	}
 
-	void change(Port *port, uint8_t channel, uint8_t MIDI_program, uint8_t bank_lsb = 0, uint8_t bank_msb = 0) {
+	void change(Port *port, uint8_t channel, uint8_t MIDI_program, uint8_t bank_lsb = 0, uint8_t bank_msb = 0)
+	{
 		programs.change(port->channels[channel].program, MIDI_program, bank_lsb, bank_msb);
 	}
 };

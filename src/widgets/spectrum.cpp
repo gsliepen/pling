@@ -13,7 +13,8 @@
 #include "shader.hpp"
 #include "../utils.hpp"
 
-namespace Widgets {
+namespace Widgets
+{
 
 static const GLchar *vertex_shader_source = R"(
 #version 100

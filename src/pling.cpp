@@ -26,7 +26,8 @@ float sample_rate = 48000;
 State state;
 MIDI::Manager MIDI::manager(programs);
 
-static void audio_callback(void *userdata, uint8_t *stream, int len) {
+static void audio_callback(void *userdata, uint8_t *stream, int len)
+{
 	static Chunk chunk;
 
 	/* Render samples from active programs */
@@ -40,13 +41,14 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 	int16_t *data = (int16_t *)stream;
 	float amplitude = state.get_master_volume() * 0.25f; // leave ~12 dB headroom
 
-	for(int i = 0; i < nsamples; i++) {
+	for (int i = 0; i < nsamples; i++) {
 		*data++ = glm::clamp(chunk.samples[i] * amplitude, -1.f, 1.f) * 32767;
 		*data++ = glm::clamp(chunk.samples[i] * amplitude, -1.f, 1.f) * 32767;
 	}
 }
 
-static void setup_audio() {
+static void setup_audio()
+{
 	SDL_AudioSpec want{}, have{};
 
 	want.freq = config["sample_rate"].as<int>(48000);
@@ -64,8 +66,9 @@ static void setup_audio() {
 		dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
 	}
 
-	if (!dev)
+	if (!dev) {
 		throw std::runtime_error(SDL_GetError());
+	}
 
 	if (have.samples != chunk_size) {
 		throw std::runtime_error("Could not get requested audio chunk size");
@@ -77,7 +80,8 @@ static void setup_audio() {
 	SDL_PauseAudioDevice(dev, 0);
 }
 
-int main(int argc, char *args[]) {
+int main(int argc, char *args[])
+{
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	auto pref_path = SDL_GetPrefPath(NULL, "pling");
 	config.init(pref_path);

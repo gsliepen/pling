@@ -5,9 +5,11 @@
 
 #include <cmath>
 
-namespace Filter {
+namespace Filter
+{
 
-void Biquad::Parameters::set(Type type, float freq, float Q, float gain) {
+void Biquad::Parameters::set(Type type, float freq, float Q, float gain)
+{
 	float norm;
 	float V = std::pow(10.0f, std::abs(gain) / 20.0);
 	float K = std::tan(M_PI * freq / sample_rate);
@@ -56,6 +58,7 @@ void Biquad::Parameters::set(Type type, float freq, float Q, float gain) {
 			b1 = a1;
 			b2 = (1.0f - V / Q * K + K * K) * norm;
 		}
+
 		break;
 
 	case Type::notch:
@@ -83,6 +86,7 @@ void Biquad::Parameters::set(Type type, float freq, float Q, float gain) {
 			b1 = 2.0f * (K * K - V) * norm;
 			b2 = (V - std::sqrt(2.0f * V) * K + K * K) * norm;
 		}
+
 		break;
 
 	case Type::lowshelf:
@@ -101,6 +105,7 @@ void Biquad::Parameters::set(Type type, float freq, float Q, float gain) {
 			b1 = 2.0f * (V * K * K - 1.0f) * norm;
 			b2 = (1.0f - std::sqrt(2.0f * V) * K + V * K * K) * norm;
 		}
+
 		break;
 	}
 

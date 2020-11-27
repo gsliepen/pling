@@ -8,7 +8,8 @@
 #include "widgets/oscilloscope.hpp"
 #include "widgets/spectrum.hpp"
 
-class UI {
+class UI
+{
 	float w = 800;
 	float h = 480;
 	bool paused{};
@@ -47,7 +48,7 @@ class UI {
 	void build();
 	void render();
 
-	public:
+public:
 	UI(RingBuffer &ringbuffer);
 	~UI();
 	void run();

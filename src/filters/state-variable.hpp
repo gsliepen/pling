@@ -6,14 +6,16 @@
 #include <glm/glm.hpp>
 #include "../pling.hpp"
 
-namespace Filter {
+namespace Filter
+{
 
-class StateVariable {
+class StateVariable
+{
 	float low{};
 	float band{};
 	float high{};
 
-	public:
+public:
 	struct Parameters {
 		enum class Type {
 			lowpass,
@@ -25,43 +27,51 @@ class StateVariable {
 		float f{1};
 		float q{1};
 
-		void set(Type type, float freq, float Q) {
+		void set(Type type, float freq, float Q)
+		{
 			this->type = type;
 			this->f = glm::clamp(2.0f * std::sin(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 			this->q = glm::clamp(1.0f / Q, 0.0f, 1.0f);
 		}
 
-		void set_freq(float freq) {
+		void set_freq(float freq)
+		{
 			this->f = glm::clamp(2.0f * std::sin(float(M_PI) * freq / sample_rate), 0.0f, 1.0f);
 		}
 
 		bool build_widget(const std::string &name);
 	};
 
-	float filter(Parameters &params, float in) {
+	float filter(Parameters &params, float in)
+	{
 		low  = params.f * band + low;
 		high = in - params.q * band - low;
 		band = params.f * high + band;
 
-		switch(params.type) {
-			case Parameters::Type::lowpass:
-				return low;
-				break;
-			case Parameters::Type::highpass:
-				return high;
-				break;
-			case Parameters::Type::bandpass:
-				return band;
-				break;
-			case Parameters::Type::notch:
-				return high + low;
-				break;
-			default:
-				return {};
+		switch (params.type) {
+		case Parameters::Type::lowpass:
+			return low;
+			break;
+
+		case Parameters::Type::highpass:
+			return high;
+			break;
+
+		case Parameters::Type::bandpass:
+			return band;
+			break;
+
+		case Parameters::Type::notch:
+			return high + low;
+			break;
+
+		default:
+			return {};
 		}
 	}
 
-	float operator()(Parameters &params, float in) {
+	float operator()(Parameters &params, float in)
+	{
 		return filter(params, in);
 	}
 };

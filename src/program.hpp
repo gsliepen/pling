@@ -7,8 +7,9 @@
 
 #include <yaml-cpp/yaml.h>
 
-class Program {
-	protected:
+class Program
+{
+protected:
 	bool active{};
 	uint8_t MIDI_program;
 	uint8_t bank_lsb;
@@ -16,20 +17,23 @@ class Program {
 
 	std::string name;
 
-	public:
+public:
 	class Manager;
 
 	virtual ~Program() {};
 
-	virtual bool render(Chunk &chunk) {
+	virtual bool render(Chunk &chunk)
+	{
 		return false;
 	};
 
-	virtual float get_zero_crossing(float offset) {
+	virtual float get_zero_crossing(float offset)
+	{
 		return offset;
 	};
 
-	virtual float get_base_frequency(void) {
+	virtual float get_base_frequency(void)
+	{
 		return {};
 	};
 
@@ -46,29 +50,35 @@ class Program {
 	virtual void set_pot(MIDI::Control, uint8_t val) {};
 	virtual void set_button(MIDI::Control, uint8_t val) {};
 
-	virtual bool build_cc_widget(uint8_t control) {
+	virtual bool build_cc_widget(uint8_t control)
+	{
 		(void)control;
 		return false;
 	};
 
-	virtual bool load(const YAML::Node &yaml) {
+	virtual bool load(const YAML::Node &yaml)
+	{
 		return false;
 	};
 
-	virtual YAML::Node save() {
+	virtual YAML::Node save()
+	{
 		return {};
 	};
 
-	virtual const std::string &get_engine_name() {
+	virtual const std::string &get_engine_name()
+	{
 		static const std::string name{"None"};
 		return name;
 	}
 
-	const std::string &get_name() {
+	const std::string &get_name()
+	{
 		return name;
 	}
 
-	const uint8_t get_MIDI_program() {
+	const uint8_t get_MIDI_program()
+	{
 		return MIDI_program;
 	}
 };

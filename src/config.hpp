@@ -7,7 +7,8 @@
 
 #include "config.h"
 
-class Config {
+class Config
+{
 public:
 	void init(const std::filesystem::path &pref_path);
 	std::filesystem::path get_load_path(const std::filesystem::path &filename);
@@ -15,7 +16,8 @@ public:
 	std::filesystem::path get_cache_path(const std::filesystem::path &filename);
 
 	template<typename Key>
-	auto operator[](const Key &key) {
+	auto operator[](const Key &key)
+	{
 		return config[key];
 	}
 

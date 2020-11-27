@@ -10,9 +10,11 @@
 #include "../pling.hpp"
 #include "../shader.hpp"
 
-namespace Widgets {
+namespace Widgets
+{
 
-class Oscilloscope {
+class Oscilloscope
+{
 	static const size_t texture_size = 768;
 	GLuint texture;
 
@@ -35,9 +37,9 @@ class Oscilloscope {
 	float nudge;
 
 	std::vector<uint8_t> scope;
-	static void render_callback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
+	static void render_callback(const ImDrawList *parent_list, const ImDrawCmd *cmd);
 
-	public:
+public:
 	Oscilloscope(const RingBuffer &ringbuffer);
 	~Oscilloscope();
 	void render(int screen_w, int screen_h);

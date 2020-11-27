@@ -2,13 +2,15 @@
 
 #pragma once
 
-namespace Filter {
+namespace Filter
+{
 
-class Biquad {
+class Biquad
+{
 	float z1{};
 	float z2{};
 
-	public:
+public:
 	struct Parameters {
 		enum class Type {
 			lowpass,
@@ -29,14 +31,16 @@ class Biquad {
 		void set(Type type, float freq, float Q, float gain);
 	};
 
-	float filter(Parameters &params, float in) {
+	float filter(Parameters &params, float in)
+	{
 		float out = in * params.a0 + z1;
 		z1 = in * params.a1 - params.b1 * out + z2;
 		z2 = in * params.a2 - params.b2 * out;
 		return out;
 	}
 
-	float operator()(Parameters &params, float in) {
+	float operator()(Parameters &params, float in)
+	{
 		return filter(params, in);
 	}
 };

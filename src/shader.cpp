@@ -6,7 +6,8 @@
 #include <iostream>
 #include <stdexcept>
 
-static void print_log(GLuint object) {
+static void print_log(GLuint object)
+{
 	GLint log_length;
 
 	if (glIsShader(object)) {
@@ -30,16 +31,20 @@ static void print_log(GLuint object) {
 	fmt::print(std::cerr, "{}\n", log);
 }
 
-static GLuint compile(GLenum type, const char *source) {
+static GLuint compile(GLenum type, const char *source)
+{
 	GLuint shader = glCreateShader(type);
-	if (!shader)
+
+	if (!shader) {
 		throw std::runtime_error("Error creating shader");
+	}
 
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
 
 	GLint ok = false;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+
 	if (!ok) {
 		print_log(shader);
 		throw std::runtime_error("Error compiling shader");
@@ -48,10 +53,13 @@ static GLuint compile(GLenum type, const char *source) {
 	return shader;
 }
 
-static GLuint link(GLuint vertex_shader, GLuint fragment_shader) {
+static GLuint link(GLuint vertex_shader, GLuint fragment_shader)
+{
 	GLuint program = glCreateProgram();
-	if (!program)
+
+	if (!program) {
 		throw std::runtime_error("Error creating shader program");
+	}
 
 	glAttachShader(program, vertex_shader);
 	glAttachShader(program, fragment_shader);
@@ -59,6 +67,7 @@ static GLuint link(GLuint vertex_shader, GLuint fragment_shader) {
 
 	GLint ok = false;
 	glGetProgramiv(program, GL_LINK_STATUS, &ok);
+
 	if (!ok) {
 		print_log(program);
 		throw std::runtime_error("Error linking shader program");
@@ -74,7 +83,8 @@ ShaderProgram::ShaderProgram(const char *vertex_source, const char *fragment_sou
 {
 }
 
-ShaderProgram::~ShaderProgram() {
+ShaderProgram::~ShaderProgram()
+{
 	glDeleteProgram(program);
 	glDeleteShader(fragment_shader);
 	glDeleteShader(vertex_shader);

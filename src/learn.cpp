@@ -15,15 +15,20 @@ struct Command {
 	uint8_t command;
 	uint8_t number;
 
-	bool operator <(const Command &other) const {
-		if (port < other.port)
+	bool operator <(const Command &other) const
+	{
+		if (port < other.port) {
 			return true;
-		else if (port > other.port)
+		} else if (port > other.port) {
 			return false;
-		if (command < other.command)
+		}
+
+		if (command < other.command) {
 			return true;
-		else if (command > other.command)
+		} else if (command > other.command) {
 			return false;
+		}
+
 		return number < other.number;
 	}
 };
@@ -45,20 +50,24 @@ struct Function {
 
 static std::map<Command, Function> mapping;
 
-static std::string port_to_string(int id, const MIDI::Port *port) {
+static std::string port_to_string(int id, const MIDI::Port *port)
+{
 	if (!port) {
 		return "Select port...";
 	}
 
-	if (id == -1)
+	if (id == -1) {
 		return fmt::format("*: {}{}", port->get_name(), port->is_open() ? "" : " (not connected)");
-	else
+	} else {
 		return fmt::format("{}: {}{}", id + 1, port->get_name(), port->is_open() ? "" : " (not connected)");
+	}
 }
 
-void UI::build_learn_window() {
+void UI::build_learn_window()
+{
 	ImGui::SetNextWindowPos({16.0f, 16.0f});
 	ImGui::SetNextWindowSize({w - 32.0f, h - 32.0f});
+
 	if (!ImGui::Begin("Learn", &show_learn_window, ImGuiWindowFlags_NoSavedSettings)) {
 		ImGui::End();
 		return;
@@ -90,6 +99,7 @@ void UI::build_learn_window() {
 
 	std::vector<uint8_t> last_command;
 	std::string description;
+
 	if (port) {
 		last_command = port->get_last_command();
 		description = MIDI::command_to_text(last_command);
@@ -105,12 +115,14 @@ void UI::build_learn_window() {
 			// Map note-off to note-on
 			last_command[0] = 0x90;
 			[[fallthrough]];
+
 		case 0x90:
 		case 0xb0:
 			command.port = port;
 			command.command = last_command[0];
 			command.number = last_command[1];
 			break;
+
 		default:
 			// We don't handle this kind of event
 			break;
@@ -124,22 +136,29 @@ void UI::build_learn_window() {
 		// Automatically learn the next unassigned control
 		if (function.type == Function::Type::Unassigned) {
 			function = prev_function;
-			switch(function.type) {
+
+			switch (function.type) {
 			case Function::Type::Button:
 			case Function::Type::Fader:
 			case Function::Type::Pot:
 			case Function::Type::Launch:
 				function.column++;
+
 				if (function.column > 16) {
 					function.column = 1;
 					function.row++;
-					if (function.row > 16)
+
+					if (function.row > 16) {
 						function.row = 1;
+					}
 				}
+
 				break;
+
 			case Function::Type::Other:
 				function.other++;
 				break;
+
 			default:
 				break;
 			}
@@ -234,6 +253,7 @@ void UI::build_learn_window() {
 
 	ImGui::End();
 
-	if (!show_learn_window)
+	if (!show_learn_window) {
 		state.set_learn_midi(false);
+	}
 }

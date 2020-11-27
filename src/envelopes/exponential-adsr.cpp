@@ -8,20 +8,24 @@
 #include "../pling.hpp"
 #include "../utils.hpp"
 
-namespace Envelope {
+namespace Envelope
+{
 
-float ExponentialADSR::update(Parameters &param) {
-	switch(state) {
+float ExponentialADSR::update(Parameters &param)
+{
+	switch (state) {
 	case State::off:
 		amplitude = 0;
 		break;
 
 	case State::attack:
 		amplitude += param.attack;
+
 		if (amplitude >= 1) {
 			amplitude = 1;
 			state = State::decay;
 		}
+
 		break;
 
 	case State::decay:
@@ -30,17 +34,20 @@ float ExponentialADSR::update(Parameters &param) {
 
 	case State::release:
 		amplitude *= param.release;
+
 		if (amplitude < cutoff) {
 			amplitude = 0;
 			state = State::off;
 		}
+
 		break;
 	}
 
 	return amplitude;
 }
 
-bool ExponentialADSR::Parameters::build_widget(const std::string &name) {
+bool ExponentialADSR::Parameters::build_widget(const std::string &name)
+{
 	ImGui::Begin((name + " envelope").c_str(), nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 
 	/* Get the window position and size */
@@ -70,17 +77,29 @@ bool ExponentialADSR::Parameters::build_widget(const std::string &name) {
 	float release_width = release_time * pps;
 
 	ImGui::Columns(4);
-	if (ImGui::InputFloat("Attack", &attack_time, 0.01f, 1.0f, "%.2f s"))
+
+	if (ImGui::InputFloat("Attack", &attack_time, 0.01f, 1.0f, "%.2f s")) {
 		set_attack(attack_time);
+	}
+
 	ImGui::NextColumn();
-	if (ImGui::InputFloat("Decay", &decay_time, 0.01f, 1.0f, "%.2f s"))
+
+	if (ImGui::InputFloat("Decay", &decay_time, 0.01f, 1.0f, "%.2f s")) {
 		set_decay(decay_time);
+	}
+
 	ImGui::NextColumn();
-	if (ImGui::InputFloat("Sustain", &sustain_level, 0.1f, 1.0f, "%.1f dB"))
+
+	if (ImGui::InputFloat("Sustain", &sustain_level, 0.1f, 1.0f, "%.1f dB")) {
 		set_sustain(dB_to_amplitude(sustain_level));
+	}
+
 	ImGui::NextColumn();
-	if (ImGui::InputFloat("Release", &release_time, 0.01f, 1.0f, "%.2f s"))
+
+	if (ImGui::InputFloat("Release", &release_time, 0.01f, 1.0f, "%.2f s")) {
 		set_release(release_time);
+	}
+
 	ImGui::Columns();
 
 	auto list = ImGui::GetWindowDrawList();
@@ -100,6 +119,7 @@ bool ExponentialADSR::Parameters::build_widget(const std::string &name) {
 
 	for (int i = 0; i <= 4; ++i) {
 		list->AddLine({coords[i].x, ct - 8}, {coords[i].x, cb}, ImColor{255, 255, 255, 128});
+
 		if (i < 4 && coords[i + 1].x - coords[i].x > 8)
 			list->AddText({0.5f * (coords[i].x + coords[i + 1].x) - 3, ct - 12}, ImColor(255, 255, 255, 128), ADSR[i]);
 	}

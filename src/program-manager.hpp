@@ -13,7 +13,8 @@
 
 #include "program.hpp"
 
-class Program::Manager {
+class Program::Manager
+{
 	// Added to by MIDI thread, deleted from by audio thread.
 	using EngineFactory = std::function<std::shared_ptr<Program>()>;
 	std::deque<std::shared_ptr<Program>> active_programs;
@@ -24,7 +25,7 @@ class Program::Manager {
 
 	std::unordered_map<std::string, EngineFactory> engines;
 
-	public:
+public:
 	class Registration {};
 
 	/**
@@ -40,15 +41,18 @@ class Program::Manager {
 	float get_base_frequency();
 	void render(Chunk &chunk);
 
-	std::shared_ptr<Program> get_selected_program() {
+	std::shared_ptr<Program> get_selected_program()
+	{
 		return selected_program;
 	}
 
-	std::shared_ptr<Program> get_last_activated_program() {
+	std::shared_ptr<Program> get_last_activated_program()
+	{
 		return last_activated_program;
 	}
 
-	Registration register_engine(const std::string &name, EngineFactory factory) {
+	Registration register_engine(const std::string &name, EngineFactory factory)
+	{
 		engines[name] = factory;
 		return {};
 	}

@@ -2,9 +2,11 @@
 
 #include "state-variable.hpp"
 
-namespace Filter {
+namespace Filter
+{
 
-bool StateVariable::Parameters::build_widget(const std::string &name) {
+bool StateVariable::Parameters::build_widget(const std::string &name)
+{
 	(void)name;
 	return false;
 }

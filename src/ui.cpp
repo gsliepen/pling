@@ -15,20 +15,23 @@
 #include "imgui/imgui.h"
 #include "state.hpp"
 
-UI::Window::Window(float w, float h) {
+UI::Window::Window(float w, float h)
+{
 	// Create the main SDL window
 	uint32_t window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 
 	SDL_DisplayMode desktop_mode;
 	SDL_GetDesktopDisplayMode(0, &desktop_mode);
 
-	if(desktop_mode.w == w && desktop_mode.h == h)
+	if (desktop_mode.w == w && desktop_mode.h == h) {
 		window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
 
 	window = SDL_CreateWindow("Pling", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, window_flags);
 
-	if (!window)
+	if (!window) {
 		throw std::runtime_error("Unable to create SDL window");
+	}
 
 	SDL_SetWindowMinimumSize(window, w, h);
 
@@ -40,11 +43,13 @@ UI::Window::Window(float w, float h) {
 	SDL_GL_SetSwapInterval(1);
 	gl_context = SDL_GL_CreateContext(window);
 
-	if (!gl_context)
+	if (!gl_context) {
 		throw std::runtime_error("Unable to create OpenGL ES 2.0 context");
+	}
 }
 
-UI::Window::~Window() {
+UI::Window::~Window()
+{
 	if (gl_context) {
 		SDL_GL_DeleteContext(gl_context);
 	}
@@ -54,7 +59,8 @@ UI::Window::~Window() {
 	}
 }
 
-UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer), spectrum(ringbuffer) {
+UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer), spectrum(ringbuffer)
+{
 	// Initialize IMGUI
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -90,19 +96,22 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	fftwf_export_wisdom_to_filename("pling.wisdom");
 }
 
-UI::~UI() {
+UI::~UI()
+{
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 }
 
-void UI::resize(int w, int h) {
+void UI::resize(int w, int h)
+{
 	this->w = w;
 	this->h = h;
 }
 
-void UI::process_window_event(const SDL_WindowEvent &ev) {
-	switch(ev.event) {
+void UI::process_window_event(const SDL_WindowEvent &ev)
+{
+	switch (ev.event) {
 	case SDL_WINDOWEVENT_SIZE_CHANGED:
 		resize(ev.data1, ev.data2);
 		break;
@@ -112,7 +121,8 @@ void UI::process_window_event(const SDL_WindowEvent &ev) {
 	}
 }
 
-bool UI::process_events() {
+bool UI::process_events()
+{
 	for (SDL_Event ev; SDL_PollEvent(&ev);) {
 		ImGui_ImplSDL2_ProcessEvent(&ev);
 
@@ -129,14 +139,16 @@ bool UI::process_events() {
 	return true;
 }
 
-void UI::build_status_bar() {
+void UI::build_status_bar()
+{
 	ImGui::SetNextWindowPos({16.0f, 0.0f});
 	ImGui::BeginChild("status", {w - 32.0f, 16.0f}, false);
 	ImGui::Text("Pling!");
 	ImGui::EndChild();
 }
 
-void UI::build_volume_meter(const char *name) {
+void UI::build_volume_meter(const char *name)
+{
 	float dB = amplitude_to_dB(ringbuffer.get_rms() * state.get_master_volume());
 	float master_dB = amplitude_to_dB(state.get_master_volume());
 
@@ -145,6 +157,7 @@ void UI::build_volume_meter(const char *name) {
 	// Draw the meter
 	auto pos = ImGui::GetCursorScreenPos();
 	auto list = ImGui::GetWindowDrawList();
+
 	if (dB > max_dB) {
 		// We're clipping for sure now.
 		list->AddRectFilled({pos.x, pos.y + h}, {pos.x + 16.0f, pos.y}, ImColor{255, 0, 0, 255});
@@ -170,7 +183,8 @@ void UI::build_volume_meter(const char *name) {
 	ImGui::EndChild();
 }
 
-void UI::build_volume_meters() {
+void UI::build_volume_meters()
+{
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{0, 0, 0, 0});
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4{0, 0, 0, 0});
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4{0, 0, 0, 0});
@@ -186,7 +200,8 @@ void UI::build_volume_meters() {
 	ImGui::PopStyleColor();
 }
 
-void UI::build_key_bar() {
+void UI::build_key_bar()
+{
 	ImGui::SetNextWindowPos({0.0f, h - 16.0f});
 	ImGui::BeginChild("keys", {1.0f * w, 16.0f}, false);
 	auto draw_list = ImGui::GetWindowDrawList();
@@ -198,6 +213,7 @@ void UI::build_key_bar() {
 	bent_pos.x += key_size * state.get_bend() / 4096.0f;
 
 	draw_list->AddRectFilled({0, 0}, {w, 16}, ImColor(128, 0, 0, 128));
+
 	for (uint8_t key = 0; key < 128; ++key) {
 		// Draw octave dividers
 		if (key && key % 12 == 0)
@@ -211,7 +227,8 @@ void UI::build_key_bar() {
 	ImGui::EndChild();
 }
 
-void UI::build_program_select() {
+void UI::build_program_select()
+{
 	auto [active_port, active_channel] = state.get_active_channel();
 
 	if (!active_port) {
@@ -221,6 +238,7 @@ void UI::build_program_select() {
 
 	ImGui::SetNextWindowPos({16.0f, 16.0f});
 	ImGui::SetNextWindowSize({w - 32.0f, h - 32.0f});
+
 	if (!ImGui::Begin("Program selection", &show_program_select, ImGuiWindowFlags_NoSavedSettings) || ImGui::IsKeyPressed(SDL_SCANCODE_ESCAPE)) {
 		show_program_select = false;
 		ImGui::End();
@@ -232,17 +250,23 @@ void UI::build_program_select() {
 
 	ImGui::PushFont(big_font);
 	ImGui::Columns(2);
+
 	if (ImGui::BeginCombo("Port", active_port->get_name().c_str())) {
-		for (auto &port: MIDI::manager.get_ports())
-			if (ImGui::Selectable(port.get_name().c_str(), &port == active_port))
+		for (auto &port : MIDI::manager.get_ports())
+			if (ImGui::Selectable(port.get_name().c_str(), &port == active_port)) {
 				state.set_active_channel(port, active_channel);
+			}
+
 		ImGui::EndCombo();
 	}
 
 	ImGui::NextColumn();
 	int selected_channel = active_channel + 1;
-	if (ImGui::SliderInt("Channel", &selected_channel, 1, 16))
+
+	if (ImGui::SliderInt("Channel", &selected_channel, 1, 16)) {
 		state.set_active_channel(*active_port, selected_channel - 1);
+	}
+
 	ImGui::Columns();
 	ImGui::PopFont();
 
@@ -251,10 +275,10 @@ void UI::build_program_select() {
 	ImGui::BeginChild("Program list");
 	ImGui::Columns(4);
 
-	for (uint8_t n = 0; n < 128; ++n)
-	{
-		if (ImGui::Selectable(fmt::format("{:03d}: Program name", n + 1).c_str(), n == current_MIDI_program))
+	for (uint8_t n = 0; n < 128; ++n) {
+		if (ImGui::Selectable(fmt::format("{:03d}: Program name", n + 1).c_str(), n == current_MIDI_program)) {
 			MIDI::manager.change(active_port, active_channel, n);
+		}
 
 		ImGui::NextColumn();
 	}
@@ -265,7 +289,8 @@ void UI::build_program_select() {
 	ImGui::End();
 }
 
-void UI::build_main_program() {
+void UI::build_main_program()
+{
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{0.0f, 1.0f, 1.0f, 0.1f});
 	ImGui::Begin("Main program", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 
@@ -280,15 +305,17 @@ void UI::build_main_program() {
 		return;
 	}
 
-	if (ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str()))
+	if (ImGui::Selectable(fmt::format("Controller: {}  Channel: {:02d}", port->get_name(), channel + 1).c_str())) {
 		show_program_select = true;
+	}
 
 	const auto &program = port->get_channel(channel).program;
 
 	ImGui::PushFont(big_font);
 
-	if(ImGui::Selectable(fmt::format("{:03d}: {}", program->get_MIDI_program() + 1, program->get_name()).c_str()) || ImGui::IsKeyPressed(SDL_SCANCODE_P))
+	if (ImGui::Selectable(fmt::format("{:03d}: {}", program->get_MIDI_program() + 1, program->get_name()).c_str()) || ImGui::IsKeyPressed(SDL_SCANCODE_P)) {
 		show_program_select = true;
+	}
 
 	ImGui::PopFont();
 
@@ -302,27 +329,33 @@ void UI::build_main_program() {
 	ImGui::PopStyleColor();
 }
 
-void UI::build_buttons() {
+void UI::build_buttons()
+{
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{1.0f, 0.0f, 1.0f, 0.1f});
 	ImGui::Begin("Buttons", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 	auto size = ImGui::GetContentRegionAvail();
 	ImVec2 button_size = {size.x / 3, size.y / 2};
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0.0f, 0.0f});
 	ImGui::PushFont(big_font);
-	if(ImGui::Button("Learn", button_size)) {
+
+	if (ImGui::Button("Learn", button_size)) {
 		state.set_learn_midi(true);
 		MIDI::manager.panic();
 		show_learn_window = true;
 	}
+
 	ImGui::SameLine();
-	ImGui::Button("Load", button_size); ImGui::SameLine();
+	ImGui::Button("Load", button_size);
+	ImGui::SameLine();
 	ImGui::Button("Save", button_size);
 
-	if (ImGui::Button("Panic", button_size))
+	if (ImGui::Button("Panic", button_size)) {
 		MIDI::manager.panic();
+	}
 
 	ImGui::SameLine();
-	ImGui::Button("Controls", button_size); ImGui::SameLine();
+	ImGui::Button("Controls", button_size);
+	ImGui::SameLine();
 	ImGui::Button("Transport", button_size);
 	ImGui::PopFont();
 	ImGui::PopStyleVar();
@@ -330,7 +363,8 @@ void UI::build_buttons() {
 	ImGui::PopStyleColor();
 }
 
-void UI::build() {
+void UI::build()
+{
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplSDL2_NewFrame(window.window);
 	ImGui::NewFrame();
@@ -379,24 +413,28 @@ void UI::build() {
 			ImGui::SetNextWindowSize({gw * 2.0f, gh});
 			program->build_cc_widget(cc);
 
-			if (auto last_change = state.get_last_active_cc_change(); decltype(last_change)::clock::now() - last_change > std::chrono::seconds(10))
+			if (auto last_change = state.get_last_active_cc_change(); decltype(last_change)::clock::now() - last_change > std::chrono::seconds(10)) {
 				state.set_active_cc(0);
+			}
 		}
 	}
 
 	ImGui::End();
 
-	if (show_learn_window)
+	if (show_learn_window) {
 		build_learn_window();
+	}
 
 	// Program select window
-	if (show_program_select)
+	if (show_program_select) {
 		build_program_select();
+	}
 
 	ImGui::Render();
 }
 
-void UI::render() {
+void UI::render()
+{
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -404,7 +442,8 @@ void UI::render() {
 }
 
 
-void UI::run() {
+void UI::run()
+{
 	while (process_events()) {
 		build();
 		render();

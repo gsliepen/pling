@@ -1,0 +1,11 @@
+--indent=tab=8
+--convert-tabs
+-j
+-f
+-A8
+-U
+-p
+-xg
+-k3
+-w
+-H

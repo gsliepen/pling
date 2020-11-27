@@ -13,9 +13,11 @@
 #include "../shader.hpp"
 #include "../utils.hpp"
 
-namespace Widgets {
+namespace Widgets
+{
 
-class Spectrum {
+class Spectrum
+{
 	static const size_t texture_size = 768;
 	GLuint texture;
 
@@ -46,9 +48,9 @@ class Spectrum {
 	std::vector<float> window;
 	std::vector<uint8_t> spectrum;
 
-	static void render_callback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
+	static void render_callback(const ImDrawList *parent_list, const ImDrawCmd *cmd);
 
-	public:
+public:
 	Spectrum(const RingBuffer &ringbuffer);
 	~Spectrum();
 	void render(int screen_w, int screen_h);

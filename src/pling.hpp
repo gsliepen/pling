@@ -20,12 +20,14 @@ extern Config config;
 struct Chunk {
 	std::array<float, chunk_size> samples;
 
-	void clear() {
+	void clear()
+	{
 		samples.fill({});
 	}
 };
 
-class RingBuffer {
+class RingBuffer
+{
 	size_t pos{};
 	std::atomic<size_t> tail{};
 	std::atomic<float> best_crossing{};
@@ -33,12 +35,14 @@ class RingBuffer {
 	std::atomic<float> avg_rms = 0;
 	std::vector<float> samples;
 
-	public:
-	RingBuffer(size_t size): samples(size) {
+public:
+	RingBuffer(size_t size): samples(size)
+	{
 		assert(size % chunk_size == 0);
 	}
 
-	void add(const Chunk &chunk, float zero_crossing = 0, float frequency = 0) {
+	void add(const Chunk &chunk, float zero_crossing = 0, float frequency = 0)
+	{
 		float rms = 0;
 
 		for (size_t i = 0; i < chunk.samples.size(); ++i) {
@@ -54,23 +58,28 @@ class RingBuffer {
 		avg_rms = avg_rms * 0.95f + rms * 0.05f;
 	}
 
-	float get_crossing() const {
+	float get_crossing() const
+	{
 		return best_crossing;
 	}
 
-	float get_rms() const {
+	float get_rms() const
+	{
 		return avg_rms;
 	}
 
-	float get_base_frequency() const {
+	float get_base_frequency() const
+	{
 		return base_frequency;
 	}
 
-	const std::vector<float> &get_samples() const {
+	const std::vector<float> &get_samples() const
+	{
 		return samples;
 	}
 
-	const size_t get_tail() const {
+	const size_t get_tail() const
+	{
 		return tail;
 	}
 };
