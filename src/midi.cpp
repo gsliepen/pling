@@ -2,13 +2,15 @@
 
 #include "midi.hpp"
 
-#include "state.hpp"
-#include "utils.hpp"
-
+#include <iostream>
 #include <fmt/format.h>
 #include <fstream>
 #include <stdexcept>
 #include <unistd.h>
+
+#include "controller.hpp"
+#include "state.hpp"
+#include "utils.hpp"
 
 namespace MIDI {
 
@@ -45,6 +47,9 @@ void Port::open(const snd_rawmidi_info_t *info) {
 
 	// Try to open the output fd, but it's fine if there is none.
 	snd_rawmidi_open(nullptr, &out, hw_name.c_str(), SND_RAWMIDI_NONBLOCK);
+
+	// Match it to a MIDI controller definition
+	controller.load(hwid);
 }
 
 bool Port::is_match(const snd_rawmidi_info_t *info) {
@@ -204,12 +209,22 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 		return;
 	}
 
+	// Try to map the MIDI message to a control
 	uint8_t type = data[0] >> 4;
 	uint8_t chan = data[0] & 0xf;
 
 	Channel &channel = port.channels[chan];
+	Control control = port.controller.map({data[0], data[1]});
+
+	if (control.command != Command::PASS) {
+		state.process_control(control, port, data, len);
+		return;
+	}
+
+	// Process non-control messages
 	auto program = channel.program;
-	assert(program);
+	if (!program)
+		return;
 
 	switch(type) {
 	case 0x0:
@@ -225,11 +240,11 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 
 	// Channel voice messages
 	// ----------------------
-	case 0x8:
+	case 0x8: // Note off
 		program->note_off(data[1], data[2]);
 		state.note_off(data[1]);
 		break;
-	case 0x9:
+	case 0x9: // Note on
 		if (data[2]) {
 			programs.activate(program);
 			program->note_on(data[1], data[2]);
@@ -239,33 +254,38 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 			state.note_off(data[1]);
 		}
 		break;
-	case 0xa:
+	case 0xa: // Polyphonic pressure
 		program->poly_pressure(data[1], data[2]);
 		break;
-	case 0xb:
-		if (data[1] == 7) {
-			state.set_master_volume(data[2] ? dB_to_amplitude(data[2] / 127.0f * 48.0f - 48.0f) : 0);
-		} else {
-			programs.get_last_activated_program()->control_change(data[1], data[2]);
-			state.set_active_cc(data[1]);
+	case 0xb: // Control change
+		// Only handle controls defined in GM
+		switch (data[1]) {
+		case 1:
+			program->modulation(data[2]);
+			break;
+		case 64:
+			program->sustain(data[2] & 64);
+			break;
+		default:
+		  break;
 		}
 		break;
-	case 0xc:
-		// program change
+	case 0xc: // Program change
 		state.set_active_channel(port, chan);
 		programs.change(channel.program, data[1]);
 		state.set_active_program(channel.program);
 		break;
-	case 0xd:
+	case 0xd: // Channel pressure
 		program->channel_pressure(data[1]);
 		break;
-	case 0xe: {
+	case 0xe: // Pitch bend
+	{
 		int16_t value = (data[1] | (data[2] << 7)) - 8192;
 		program->pitch_bend(value);
 		state.set_bend(value);
 		break;
 	}
-	case 0xf:
+	case 0xf: // Non-channel messages
 		switch (data[0] & 0x0f) {
 		// System common messages
 		// ----------------------

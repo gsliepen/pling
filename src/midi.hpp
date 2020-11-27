@@ -13,6 +13,7 @@
 #include <thread>
 #include <vector>
 
+#include "controller.hpp"
 #include "program-manager.hpp"
 
 namespace MIDI {
@@ -42,6 +43,7 @@ class Port {
 	mutable std::mutex last_command_mutex;
 	std::vector<uint8_t> last_command;
 
+	Controller controller;
 	Channel channels[16];
 
 	public:
@@ -60,6 +62,10 @@ class Port {
 
 	std::string get_name() const {
 		return name;
+	}
+
+	const std::string &get_hwid() const {
+		return hwid;
 	}
 
 	bool is_open() const {

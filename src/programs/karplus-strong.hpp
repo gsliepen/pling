@@ -51,8 +51,13 @@ class KarplusStrong: public Program {
 	virtual void pitch_bend(int16_t value) final;
 	virtual void channel_pressure(int8_t pressure) final;
 	virtual void poly_pressure(uint8_t key, uint8_t pressure) final;
-	virtual void control_change(uint8_t control, uint8_t val) final;
+	virtual void modulation(uint8_t value) final;
+	virtual void sustain(bool value) final;
 	virtual void release_all() final;
+
+	virtual void set_fader(MIDI::Control control, uint8_t val) final;
+	virtual void set_pot(MIDI::Control control, uint8_t val) final;
+	virtual void set_button(MIDI::Control control, uint8_t val) final;
 
 	virtual float get_zero_crossing(float offset) final;
 	virtual float get_base_frequency() final;

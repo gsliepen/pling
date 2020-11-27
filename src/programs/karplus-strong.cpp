@@ -116,66 +116,58 @@ void KarplusStrong::pitch_bend(int16_t value) {
 
 void KarplusStrong::channel_pressure(int8_t pressure) {}
 void KarplusStrong::poly_pressure(uint8_t key, uint8_t pressure) {}
-void KarplusStrong::control_change(uint8_t control, uint8_t val) {
-	switch(control) {
-	case 1:
-		params.mod = cc_linear(val, 0, 1);
-		break;
-	case 12:
-	case 38:
+void KarplusStrong::set_fader(MIDI::Control control, uint8_t val) {
+	switch(control.col) {
+	case 0:
 		params.amplitude_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 13:
-	case 39:
+	case 1:
 		params.amplitude_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 14:
-	case 40:
+	case 2:
 		params.amplitude_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
-	case 15:
-	case 41:
+	case 3:
 		params.amplitude_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 16:
-	case 42:
+	case 4:
 		params.filter_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 17:
-	case 43:
+	case 5:
 		params.filter_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 18:
-	case 44:
+	case 6:
 		params.filter_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
-	case 19:
-	case 45:
+	case 7:
 		params.filter_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 30:
-	case 60:
-		params.decay = 1.0f - cc_exponential(127 - val, 0.001, 1);
-		break;
-	case 31:
-	case 61:
-		break;
-	case 32:
-	case 62:
-		break;
-
-	case 33:
-	case 63:
-		break;
-
-	case 64:
-		voices.set_sustain(val);
 		break;
 
 	default:
-		fmt::print(std::cerr, "{} {}\n", control, val);
 		break;
 	}
+}
+
+void KarplusStrong::set_pot(MIDI::Control control, uint8_t val) {
+	switch(control.col) {
+	case 0:
+		params.decay = 1.0f - cc_exponential(127 - val, 0.001, 1);
+		break;
+	default:
+		break;
+	}
+}
+
+void KarplusStrong::set_button(MIDI::Control control, uint8_t val) {
+}
+
+void KarplusStrong::modulation(uint8_t val) {
+	params.mod = cc_linear(val, 0, 1);
+}
+
+void KarplusStrong::sustain(bool val) {
+	voices.set_sustain(val);
 }
 
 void KarplusStrong::release_all() {

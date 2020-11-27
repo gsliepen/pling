@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "controller.hpp"
 #include "pling.hpp"
 
 #include <yaml-cpp/yaml.h>
@@ -37,8 +38,13 @@ class Program {
 	virtual void pitch_bend(int16_t bend) {};
 	virtual void channel_pressure(int8_t pressure) {};
 	virtual void poly_pressure(uint8_t key, uint8_t pressure) {};
-	virtual void control_change(uint8_t control, uint8_t val) {};
+	virtual void modulation(uint8_t value) {};
+	virtual void sustain(bool value) {};
 	virtual void release_all() {};
+
+	virtual void set_fader(MIDI::Control, uint8_t val) {};
+	virtual void set_pot(MIDI::Control, uint8_t val) {};
+	virtual void set_button(MIDI::Control, uint8_t val) {};
 
 	virtual bool build_cc_widget(uint8_t control) {
 		(void)control;

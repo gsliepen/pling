@@ -87,76 +87,66 @@ void Simple::pitch_bend(int16_t value) {
 	params.bend = exp2(value / 8192.0 / 6.0);
 }
 
+void Simple::modulation(uint8_t value) {
+	params.mod = cc_linear(value, 0, 1);
+}
+
 void Simple::channel_pressure(int8_t pressure) {}
 void Simple::poly_pressure(uint8_t key, uint8_t pressure) {}
-void Simple::control_change(uint8_t control, uint8_t val) {
-	switch(control) {
-	case 1:
-		params.mod = cc_linear(val, 0, 1);
-		break;
-	case 12:
-	case 38:
+
+void Simple::set_fader(MIDI::Control control, uint8_t val) {
+	switch(control.col) {
+	case 0:
 		params.amplitude_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 13:
-	case 39:
+	case 1:
 		params.amplitude_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 14:
-	case 40:
+	case 2:
 		params.amplitude_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
-	case 15:
-	case 41:
+	case 3:
 		params.amplitude_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 16:
-	case 42:
+	case 4:
 		params.filter_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 17:
-	case 43:
+	case 5:
 		params.filter_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 18:
-	case 44:
+	case 6:
 		params.filter_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
 		break;
-	case 19:
-	case 45:
+	case 7:
 		params.filter_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
 		break;
-	case 30:
-	case 60:
+	default:
+		break;
+    }
+};
+
+void Simple::set_pot(MIDI::Control control, uint8_t val) {
+	switch(control.col) {
+	case 0:
 		params.freq = cc_exponential(val, 0, 1, sample_rate / 6, sample_rate / 6);
 		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
-	case 31:
-	case 61:
+	case 1:
 		params.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
 		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {}\n", params.freq, params.Q, params.gain);
 		break;
-	case 32:
-	case 62:
-		break;
-
-	case 33:
-	case 63:
+	case 3:
 		params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 4));
 		params.svf.set(params.svf_type, params.freq, params.Q);
-		fmt::print(std::cerr, "{} {} {} {}\n", params.freq, params.Q, params.gain, (int)params.svf_type);
-		break;
-
-	case 64:
-		voices.set_sustain(val);
-		break;
-
-	default:
-		fmt::print(std::cerr, "{} {}\n", control, val);
 		break;
 	}
+}
+
+void Simple::set_button(MIDI::Control control, uint8_t val) {
+}
+
+void Simple::sustain(bool val) {
+	voices.set_sustain(val);
 }
 
 void Simple::release_all() {

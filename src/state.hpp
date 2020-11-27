@@ -22,7 +22,22 @@ class State {
 	float master_volume{1};
 	bool learn_midi{};
 
-	public:
+	enum class Mode {
+		INSTRUMENT,
+		MIXER,
+		PRESET,
+	} mode{Mode::INSTRUMENT};
+
+	void set_fader(MIDI::Control control, MIDI::Port &port, int8_t value);
+	void set_pot(MIDI::Control control, MIDI::Port &port, int8_t value);
+	void set_button(MIDI::Control control, MIDI::Port &port, int8_t value);
+	void set_pitch_bend(MIDI::Control control, MIDI::Port &port, int8_t value);
+	void set_modulation(MIDI::Control control, MIDI::Port &port, int8_t value);
+	void set_sustain(MIDI::Control control, MIDI::Port &port, int8_t value);
+
+public:
+	void process_control(MIDI::Control control, MIDI::Port &port, const uint8_t *data, ssize_t len);
+
 	void set_active_channel(MIDI::Port &port, uint8_t channel) {
 		active_port = &port;
 		active_channel = channel;
