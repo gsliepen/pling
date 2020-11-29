@@ -10,7 +10,8 @@
  * A manager for a fixed number of polyphonic voices.
  */
 template <typename Voice, uint32_t N>
-class VoiceManager {
+class VoiceManager
+{
 	bool sustain;
 
 	/**
@@ -18,34 +19,38 @@ class VoiceManager {
 	 */
 	struct State {
 		uint8_t key;
-		bool active:1;    /// Whether the voice is producing sound.
-		bool pressed:1;   /// Whether the key is pressed for this voice.
-		bool sustained:1; /// Whether the key was pressed while sustain is on.
+		bool active: 1;   /// Whether the voice is producing sound.
+		bool pressed: 1;  /// Whether the key is pressed for this voice.
+		bool sustained: 1; /// Whether the key was pressed while sustain is on.
 
-		bool is_released() {
+		bool is_released()
+		{
 			return !pressed && !sustained;
 		}
-	} state[N]{};
+	} state[N] {};
 
-	Voice voices[N]{};
+	Voice voices[N] {};
 
-	public:
+public:
 	/**
 	 * An iterator for going through all active voices.
 	 */
-	class Iterator {
+	class Iterator
+	{
 		friend class VoiceManager;
 		VoiceManager &manager;
 		uint32_t i;
 
-		Iterator(VoiceManager &manager, bool begin): manager(manager) {
+		Iterator(VoiceManager &manager, bool begin): manager(manager)
+		{
 			if (begin) {
-				for(i = 0; i < N; ++i) {
+				for (i = 0; i < N; ++i) {
 					if (manager.state[i].active) {
-						if (manager.voices[i].is_active())
+						if (manager.voices[i].is_active()) {
 							break;
-						else
+						} else {
 							manager.state[i].active = false;
+						}
 					}
 				}
 			} else {
@@ -53,30 +58,36 @@ class VoiceManager {
 			}
 		}
 
-		public:
-		Voice &operator*() {
+	public:
+		Voice &operator*()
+		{
 			return manager.voices[i];
 		}
 
-		Voice *operator->() {
+		Voice *operator->()
+		{
 			return &manager.voices[i];
 		}
 
-		bool operator==(const Iterator &other) {
+		bool operator==(const Iterator &other)
+		{
 			return i == other.i;
 		}
 
-		bool operator!=(const Iterator &other) {
+		bool operator!=(const Iterator &other)
+		{
 			return !(*this == other);
 		}
 
-		Iterator &operator++() {
+		Iterator &operator++()
+		{
 			while (i < N) {
 				if (manager.state[++i].active) {
-					if (manager.voices[i].is_active())
+					if (manager.voices[i].is_active()) {
 						break;
-					else
+					} else {
 						manager.state[i].active = false;
+					}
 				}
 			}
 
@@ -94,10 +105,11 @@ class VoiceManager {
 	 * @param key  A MIDI key number.
 	 * @return     A pointer to a voice, or nullptr if there is no suitable voice.
 	 */
-	Voice *press(uint8_t key) {
+	Voice *press(uint8_t key)
+	{
 		unsigned int candidate = N;
 
-		for(unsigned int i = 0; i < N; ++i) {
+		for (unsigned int i = 0; i < N; ++i) {
 			if (state[i].key == key) {
 				candidate = i;
 				break;
@@ -110,8 +122,9 @@ class VoiceManager {
 			}
 		}
 
-		if (candidate == N)
+		if (candidate == N) {
 			return nullptr;
+		}
 
 		state[candidate].key = key;
 		state[candidate].active = true;
@@ -127,16 +140,19 @@ class VoiceManager {
 	 * @param key  A MIDI key number.
 	 * @return     A pointer to a voice, or nullptr if there was no active voice.
 	 */
-	Voice *release(uint8_t key) {
+	Voice *release(uint8_t key)
+	{
 		Voice *voice = nullptr;
 
-		for(unsigned int i = 0; i < N; ++i) {
+		for (unsigned int i = 0; i < N; ++i) {
 			if (state[i].active && state[i].key == key) {
 				state[i].pressed = false;
 				voice = &voices[i];
-				if(!state[i].sustained) {
+
+				if (!state[i].sustained) {
 					voice->release();
 				}
+
 				break;
 			}
 		}
@@ -147,8 +163,9 @@ class VoiceManager {
 	/**
 	 * Release all voices.
 	 */
-	void release_all() {
-		for(unsigned int i = 0; i < N; ++i) {
+	void release_all()
+	{
+		for (unsigned int i = 0; i < N; ++i) {
 			state[i].pressed = false;
 			voices[i].release();
 		}
@@ -159,22 +176,24 @@ class VoiceManager {
 	 *
 	 * @param sustain  True if sustain should be on, false if off.
 	 */
-	void set_sustain(bool sustain) {
+	void set_sustain(bool sustain)
+	{
 		this->sustain = sustain;
 
 		if (sustain) {
 			// Mark all pressed keys as being sustained
-			for(unsigned int i = 0; i < N; ++i) {
+			for (unsigned int i = 0; i < N; ++i) {
 				if (state[i].active && state[i].pressed) {
 					state[i].sustained = true;
 				}
 			}
 		} else {
 			// Release all non-pressed sustained keys
-			for(unsigned int i = 0; i < N; ++i) {
+			for (unsigned int i = 0; i < N; ++i) {
 				if (state[i].active && state[i].sustained && !state[i].pressed) {
 					voices[i].release();
 				}
+
 				state[i].sustained = false;
 			}
 		}
@@ -185,8 +204,9 @@ class VoiceManager {
 	 *
 	 * @param key  A MIDI key number.
 	 */
-	void stop(uint8_t key) {
-		for(unsigned int i = 0; i < N; ++i) {
+	void stop(uint8_t key)
+	{
+		for (unsigned int i = 0; i < N; ++i) {
 			if (state[i].key == key) {
 				state[i].active = false;
 				state[i].pressed = false;
@@ -201,10 +221,11 @@ class VoiceManager {
 	 *
 	 * @return A pointer to the lowest voice, or nullptr if there are no active voices.
 	 */
-	Voice *get_lowest() {
+	Voice *get_lowest()
+	{
 		unsigned int candidate = N;
 
-		for(unsigned int i = 0; i < N; ++i) {
+		for (unsigned int i = 0; i < N; ++i) {
 			if (!state[i].active) {
 				continue;
 			}
@@ -226,12 +247,18 @@ class VoiceManager {
 	 *
 	 * @return An iterator to the first active voice.
 	 */
-	Iterator begin() { return Iterator(*this, true); }
+	Iterator begin()
+	{
+		return Iterator(*this, true);
+	}
 
 	/**
 	 * Returns an iterator to the end of the active voices.
 	 *
 	 * @return An iterator to the end of the active voices.
 	 */
-	Iterator end() { return Iterator(*this, false); }
+	Iterator end()
+	{
+		return Iterator(*this, false);
+	}
 };

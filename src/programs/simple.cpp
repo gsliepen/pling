@@ -10,8 +10,9 @@
 #include "../program-manager.hpp"
 #include "utils.hpp"
 
-bool Simple::Voice::render(Chunk &chunk, Parameters &params) {
-	for (auto &sample: chunk.samples) {
+bool Simple::Voice::render(Chunk &chunk, Parameters &params)
+{
+	for (auto &sample : chunk.samples) {
 		params.svf.set_freq(filter_envelope.update(params.filter_envelope) * params.freq);
 		sample += svf(params.svf, osc.saw() * amp * amplitude_envelope.update(params.amplitude_envelope) * (1 - (lfo.fast_sine() * 0.5 + 0.5) * params.mod));
 		++lfo;
@@ -21,7 +22,8 @@ bool Simple::Voice::render(Chunk &chunk, Parameters &params) {
 	return is_active();
 }
 
-void Simple::Voice::init(uint8_t key, float freq, float amp) {
+void Simple::Voice::init(uint8_t key, float freq, float amp)
+{
 	lfo.init(10);
 	osc.init(freq);
 	this->amp = amp;
@@ -29,112 +31,144 @@ void Simple::Voice::init(uint8_t key, float freq, float amp) {
 	filter_envelope.init();
 }
 
-void Simple::Voice::release() {
+void Simple::Voice::release()
+{
 	amplitude_envelope.release();
 	filter_envelope.release();
 }
 
-float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params) {
+float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params)
+{
 	return osc.get_zero_crossing(offset, params.bend);
 }
 
-float Simple::Voice::get_frequency(Simple::Parameters &params) {
+float Simple::Voice::get_frequency(Simple::Parameters &params)
+{
 	return osc.get_frequency(params.bend);
 }
 
-bool Simple::render(Chunk &chunk) {
+bool Simple::render(Chunk &chunk)
+{
 	bool active = false;
 
-	for(auto &voice: voices) {
+	for (auto &voice : voices) {
 		active |= voice.render(chunk, params);
 	}
 
 	return active;
 }
 
-float Simple::get_zero_crossing(float offset) {
+float Simple::get_zero_crossing(float offset)
+{
 	float crossing = offset;
 
-	if(Voice *lowest = voices.get_lowest(); lowest) {
+	if (Voice *lowest = voices.get_lowest(); lowest) {
 		crossing = lowest->get_zero_crossing(offset, params);
 	}
 
 	return crossing;
 }
 
-float Simple::get_base_frequency() {
-	if(Voice *lowest = voices.get_lowest(); lowest)
+float Simple::get_base_frequency()
+{
+	if (Voice *lowest = voices.get_lowest(); lowest) {
 		return lowest->get_frequency(params);
-	else
+	} else
 		return {};
 }
 
-void Simple::note_on(uint8_t key, uint8_t vel) {
+void Simple::note_on(uint8_t key, uint8_t vel)
+{
 	Voice *voice = voices.press(key);
-	if (!voice)
+
+	if (!voice) {
 		return;
+	}
 
 	float freq = 440.0 * std::exp2((key - 69) / 12.0);
 	float amp = std::exp((vel - 127.) / 32.);
 	voice->init(key, freq, amp);
 }
 
-void Simple::note_off(uint8_t key, uint8_t vel) {
+void Simple::note_off(uint8_t key, uint8_t vel)
+{
 	voices.release(key);
 }
 
-void Simple::pitch_bend(int16_t value) {
+void Simple::pitch_bend(int16_t value)
+{
 	params.bend = exp2(value / 8192.0 / 6.0);
 }
 
-void Simple::modulation(uint8_t value) {
+void Simple::modulation(uint8_t value)
+{
 	params.mod = cc_linear(value, 0, 1);
 }
 
 void Simple::channel_pressure(int8_t pressure) {}
 void Simple::poly_pressure(uint8_t key, uint8_t pressure) {}
 
-void Simple::set_fader(MIDI::Control control, uint8_t val) {
-	switch(control.col) {
+void Simple::set_fader(MIDI::Control control, uint8_t val)
+{
+	switch (control.col) {
 	case 0:
 		params.amplitude_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::AMPLITUDE_ENVELOPE);
 		break;
+
 	case 1:
 		params.amplitude_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::AMPLITUDE_ENVELOPE);
 		break;
+
 	case 2:
 		params.amplitude_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
+		set_context(Context::AMPLITUDE_ENVELOPE);
 		break;
+
 	case 3:
 		params.amplitude_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::AMPLITUDE_ENVELOPE);
 		break;
+
 	case 4:
 		params.filter_envelope.set_attack(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::FILTER_ENVELOPE);
 		break;
+
 	case 5:
 		params.filter_envelope.set_decay(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::FILTER_ENVELOPE);
 		break;
+
 	case 6:
 		params.filter_envelope.set_sustain(dB_to_amplitude(cc_linear(val, -48, 0)));
+		set_context(Context::FILTER_ENVELOPE);
 		break;
+
 	case 7:
 		params.filter_envelope.set_release(cc_exponential(val, 0, 1e-2, 1e1, 1e1));
+		set_context(Context::FILTER_ENVELOPE);
 		break;
+
 	default:
 		break;
-    }
+	}
 };
 
-void Simple::set_pot(MIDI::Control control, uint8_t val) {
-	switch(control.col) {
+void Simple::set_pot(MIDI::Control control, uint8_t val)
+{
+	switch (control.col) {
 	case 0:
 		params.freq = cc_exponential(val, 0, 1, sample_rate / 6, sample_rate / 6);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		break;
+
 	case 1:
 		params.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
 		params.svf.set(params.svf_type, params.freq, params.Q);
 		break;
+
 	case 3:
 		params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 4));
 		params.svf.set(params.svf_type, params.freq, params.Q);
@@ -142,18 +176,22 @@ void Simple::set_pot(MIDI::Control control, uint8_t val) {
 	}
 }
 
-void Simple::set_button(MIDI::Control control, uint8_t val) {
+void Simple::set_button(MIDI::Control control, uint8_t val)
+{
 }
 
-void Simple::sustain(bool val) {
+void Simple::sustain(bool val)
+{
 	voices.set_sustain(val);
 }
 
-void Simple::release_all() {
+void Simple::release_all()
+{
 	voices.release_all();
 }
 
-bool Simple::load(const YAML::Node &yaml) {
+bool Simple::load(const YAML::Node &yaml)
+{
 	params.amplitude_envelope.set_attack(yaml["amplitude_envelope"][0].as<float>());
 	params.amplitude_envelope.set_decay(yaml["amplitude_envelope"][1].as<float>());
 	params.amplitude_envelope.set_sustain(yaml["amplitude_envelope"][2].as<float>());
@@ -171,7 +209,8 @@ bool Simple::load(const YAML::Node &yaml) {
 	return true;
 }
 
-YAML::Node Simple::save() {
+YAML::Node Simple::save()
+{
 	YAML::Node yaml;
 
 	yaml["amplitude_envelope"].push_back(params.amplitude_envelope.attack);
@@ -191,34 +230,16 @@ YAML::Node Simple::save() {
 	return yaml;
 }
 
-bool Simple::build_cc_widget(uint8_t control) {
-	switch(control) {
-	case 12:
-	case 38:
-	case 13:
-	case 39:
-	case 14:
-	case 40:
-	case 15:
-	case 41:
+bool Simple::build_context_widget()
+{
+	switch (get_context()) {
+	case Context::AMPLITUDE_ENVELOPE:
 		return params.amplitude_envelope.build_widget("Amplitude");
-	case 16:
-	case 42:
-	case 17:
-	case 43:
-	case 18:
-	case 44:
-	case 19:
-	case 45:
+
+	case Context::FILTER_ENVELOPE:
 		return params.filter_envelope.build_widget("Filter cutoff");
-	case 30:
-	case 60:
-	case 31:
-	case 61:
-	case 32:
-	case 62:
-	case 33:
-	case 63:
+
+	case Context::FILTER_PARAMETERS:
 		return params.svf.build_widget("Filter");
 
 	default:
@@ -228,8 +249,12 @@ bool Simple::build_cc_widget(uint8_t control) {
 
 static const std::string engine_name{"Simple"};
 
-const std::string &Simple::get_engine_name() {
+const std::string &Simple::get_engine_name()
+{
 	return engine_name;
 }
 
-static auto registration = programs.register_engine(engine_name, [](){return std::make_shared<Simple>();});
+static auto registration = programs.register_engine(engine_name, []()
+{
+	return std::make_shared<Simple>();
+});

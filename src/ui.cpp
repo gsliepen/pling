@@ -404,20 +404,9 @@ void UI::build()
 	spectrum.build(w, h);
 
 	// Context sensitive widgets
-	const auto &[port, channel] = state.get_active_channel();
-
-	if (port) {
-		if (auto cc = state.get_active_cc(); cc) {
-			const auto &program = programs.get_last_activated_program();
-			ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
-			ImGui::SetNextWindowSize({gw * 2.0f, gh});
-			program->build_cc_widget(cc);
-
-			if (auto last_change = state.get_last_active_cc_change(); decltype(last_change)::clock::now() - last_change > std::chrono::seconds(10)) {
-				state.set_active_cc(0);
-			}
-		}
-	}
+	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
+	ImGui::SetNextWindowSize({gw * 2.0f, gh});
+	state.build_context_widget();
 
 	ImGui::End();
 

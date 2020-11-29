@@ -50,9 +50,8 @@ public:
 	virtual void set_pot(MIDI::Control, uint8_t val) {};
 	virtual void set_button(MIDI::Control, uint8_t val) {};
 
-	virtual bool build_cc_widget(uint8_t control)
+	virtual bool build_context_widget(void)
 	{
-		(void)control;
 		return false;
 	};
 

@@ -127,6 +127,8 @@ public:
 	{
 		return learn_midi;
 	}
+
+	void build_context_widget();
 };
 
 extern State state;
