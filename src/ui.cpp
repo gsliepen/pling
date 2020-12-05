@@ -249,7 +249,8 @@ void UI::build_program_select()
 	const auto current_MIDI_program = program->get_MIDI_program();
 
 	ImGui::PushFont(big_font);
-	ImGui::Columns(2);
+	ImGui::BeginTable("program-select", 2);
+	ImGui::TableNextColumn();
 
 	if (ImGui::BeginCombo("Port", active_port->get_name().c_str())) {
 		for (auto &port : MIDI::manager.get_ports())
@@ -260,30 +261,30 @@ void UI::build_program_select()
 		ImGui::EndCombo();
 	}
 
-	ImGui::NextColumn();
+	ImGui::TableNextColumn();
 	int selected_channel = active_channel + 1;
 
 	if (ImGui::SliderInt("Channel", &selected_channel, 1, 16)) {
 		state.set_active_channel(*active_port, selected_channel - 1);
 	}
 
-	ImGui::Columns();
+	ImGui::EndTable();
 	ImGui::PopFont();
 
 	ImGui::Separator();
 
 	ImGui::BeginChild("Program list");
-	ImGui::Columns(4);
+	ImGui::BeginTable("program-list", 4);
 
 	for (uint8_t n = 0; n < 128; ++n) {
+		ImGui::TableNextColumn();
+
 		if (ImGui::Selectable(fmt::format("{:03d}: Program name", n + 1).c_str(), n == current_MIDI_program)) {
 			MIDI::manager.change(active_port, active_channel, n);
 		}
-
-		ImGui::NextColumn();
 	}
 
-	ImGui::Columns();
+	ImGui::EndTable();
 	ImGui::EndChild();
 
 	ImGui::End();

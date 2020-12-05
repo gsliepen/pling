@@ -76,31 +76,32 @@ bool ExponentialADSR::Parameters::build_widget(const std::string &name)
 	float sustain_height = (1.0f + sustain_level / 48.0f) * ch;
 	float release_width = release_time * pps;
 
-	ImGui::Columns(4);
+	ImGui::BeginTable("##ADSR", 4);
+	ImGui::TableNextColumn();
 
 	if (ImGui::InputFloat("Attack", &attack_time, 0.01f, 1.0f, "%.2f s")) {
 		set_attack(attack_time);
 	}
 
-	ImGui::NextColumn();
+	ImGui::TableNextColumn();
 
 	if (ImGui::InputFloat("Decay", &decay_time, 0.01f, 1.0f, "%.2f s")) {
 		set_decay(decay_time);
 	}
 
-	ImGui::NextColumn();
+	ImGui::TableNextColumn();
 
 	if (ImGui::InputFloat("Sustain", &sustain_level, 0.1f, 1.0f, "%.1f dB")) {
 		set_sustain(dB_to_amplitude(sustain_level));
 	}
 
-	ImGui::NextColumn();
+	ImGui::TableNextColumn();
 
 	if (ImGui::InputFloat("Release", &release_time, 0.01f, 1.0f, "%.2f s")) {
 		set_release(release_time);
 	}
 
-	ImGui::Columns();
+	ImGui::EndTable();
 
 	auto list = ImGui::GetWindowDrawList();
 
