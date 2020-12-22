@@ -6,40 +6,48 @@
 
 #include "../pling.hpp"
 
-namespace Oscillator {
+namespace Oscillator
+{
 
-class Basic {
-	private:
+class Basic
+{
+private:
 	float delta{};
 	float phase{};
 
-	public:
+public:
 	Basic() = default;
 
-	Basic(float freq) {
+	Basic(float freq)
+	{
 		init(freq);
 	}
 
-	void init(float freq) {
+	void init(float freq)
+	{
 		this->delta = freq / sample_rate;
 		this->phase = {};
 	}
 
-	void update() {
+	void update()
+	{
 		phase += delta;
 		phase -= std::floor(phase);
 	};
 
-	void update(float bend) {
+	void update(float bend)
+	{
 		phase += delta * bend;
 		phase -= std::floor(phase);
 	};
 
-	float sine() {
+	float sine()
+	{
 		return std::sin(phase * float(2 * M_PI));
 	}
 
-	float fast_sine() {
+	float fast_sine()
+	{
 		// Approximation of a sine using a parabola, without using branches.
 		const float x1 = phase - 0.5f;
 		const float x2 = std::abs(x1) * 4.0f - 1.0f;
@@ -47,32 +55,39 @@ class Basic {
 		return std::copysign(v, x1);
 	}
 
-	float square() {
+	float square()
+	{
 		return std::rint(phase) * -2.0f + 1.0f;
 	}
 
-	float saw() {
+	float saw()
+	{
 		return phase * -2.0f + 1.0f;
 	}
 
-	float triangle() {
+	float triangle()
+	{
 		return std::abs(phase - 0.5f) * 4.0f - 1.0f;
 	}
 
-	Basic &operator++() {
+	Basic &operator++()
+	{
 		update();
 		return *this;
 	}
 
-	operator float() {
+	operator float()
+	{
 		return phase;
 	}
 
-	float operator()() {
+	float operator()()
+	{
 		return phase;
 	}
 
-	float get_zero_crossing(float offset, float bend = 1.0) {
+	float get_zero_crossing(float offset, float bend = 1.0) const
+	{
 		/* Going backwards from the current sample position + offset,
 		 * return the first zero crossing of the phase of this oscillator. */
 
@@ -81,7 +96,8 @@ class Basic {
 		return offset - phase_at_offset / (delta * bend);
 	}
 
-	float get_frequency(float bend = 1.0) {
+	float get_frequency(float bend = 1.0) const
+	{
 		return delta * sample_rate * bend;
 	}
 };

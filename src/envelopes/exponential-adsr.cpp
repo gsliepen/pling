@@ -11,7 +11,7 @@
 namespace Envelope
 {
 
-float ExponentialADSR::update(Parameters &param)
+float ExponentialADSR::update(const Parameters &param)
 {
 	switch (state) {
 	case State::off:

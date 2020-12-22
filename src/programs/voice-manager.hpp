@@ -23,7 +23,7 @@ class VoiceManager
 		bool pressed: 1;  /// Whether the key is pressed for this voice.
 		bool sustained: 1; /// Whether the key was pressed while sustain is on.
 
-		bool is_released()
+		bool is_released() const
 		{
 			return !pressed && !sustained;
 		}
@@ -221,7 +221,7 @@ public:
 	 *
 	 * @return A pointer to the lowest voice, or nullptr if there are no active voices.
 	 */
-	Voice *get_lowest()
+	const Voice *get_lowest() const
 	{
 		unsigned int candidate = N;
 

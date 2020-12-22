@@ -69,12 +69,12 @@ void KarplusStrong::Voice::release()
 	filter_envelope.release();
 }
 
-float KarplusStrong::Voice::get_zero_crossing(float offset, KarplusStrong::Parameters &params)
+float KarplusStrong::Voice::get_zero_crossing(float offset, const Parameters &params) const
 {
 	return osc.get_zero_crossing(offset, params.bend);
 }
 
-float KarplusStrong::Voice::get_frequency(KarplusStrong::Parameters &params)
+float KarplusStrong::Voice::get_frequency(const Parameters &params) const
 {
 	return osc.get_frequency(params.bend);
 }
@@ -90,20 +90,20 @@ bool KarplusStrong::render(Chunk &chunk)
 	return active;
 }
 
-float KarplusStrong::get_zero_crossing(float offset)
+float KarplusStrong::get_zero_crossing(float offset) const
 {
 	float crossing = offset;
 
-	if (Voice *lowest = voices.get_lowest(); lowest) {
+	if (auto lowest = voices.get_lowest(); lowest) {
 		crossing = lowest->get_zero_crossing(offset, params);
 	}
 
 	return crossing;
 }
 
-float KarplusStrong::get_base_frequency()
+float KarplusStrong::get_base_frequency() const
 {
-	if (Voice *lowest = voices.get_lowest(); lowest) {
+	if (auto lowest = voices.get_lowest(); lowest) {
 		return lowest->get_frequency(params);
 	} else
 		return {};

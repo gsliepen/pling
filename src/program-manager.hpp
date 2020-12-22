@@ -37,8 +37,8 @@ public:
 
 	void change(std::shared_ptr<Program> &program, uint8_t MIDI_program, uint8_t bank_lsb = 0, uint8_t bank_msb = 0);
 
-	float get_zero_crossing(float offset);
-	float get_base_frequency();
+	float get_zero_crossing(float offset) const;
+	float get_base_frequency() const;
 	void render(Chunk &chunk);
 
 	std::shared_ptr<Program> get_selected_program()

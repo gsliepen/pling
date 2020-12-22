@@ -1,0 +1,109 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+#include "state.hpp"
+
+
+void State::set_pot(MIDI::Control control, MIDI::Port &port, int8_t value)
+{
+	if (mode == Mode::INSTRUMENT) {
+		auto program = programs.get_last_activated_program();
+		program->set_pot(control, value);
+	}
+}
+
+void State::set_fader(MIDI::Control control, MIDI::Port &port, int8_t value)
+{
+	if (control.master) {
+		state.set_master_volume(value ? dB_to_amplitude(value / 127.0f * 48.0f - 48.0f) : 0);
+		return;
+	}
+
+	if (mode == Mode::INSTRUMENT) {
+		auto program = programs.get_last_activated_program();
+		program->set_fader(control, value);
+	}
+}
+
+void State::set_button(MIDI::Control control, MIDI::Port &port, int8_t value)
+{
+	if (mode == Mode::INSTRUMENT) {
+		auto program = programs.get_last_activated_program();
+		program->set_button(control, value);
+	}
+}
+
+void State::process_control(MIDI::Control control, MIDI::Port &port, const uint8_t *data, ssize_t len)
+{
+	int8_t value{};
+
+	switch (data[0] & 0xf0) {
+	case 0x80: // Note off
+		value = 0;
+		break;
+
+	case 0x90: // Note on
+	case 0xb0: // Control change
+		value = data[2];
+		break;
+
+	default:
+		break;
+	}
+
+	switch (control.command) {
+	/* Generic controls */
+	case MIDI::Command::PASS:
+	case MIDI::Command::IGNORE:
+		return;
+
+	case MIDI::Command::POT:
+		set_pot(control, port, value);
+		break;
+
+	case MIDI::Command::FADER:
+		set_fader(control, port, value);
+		break;
+
+	case MIDI::Command::BUTTON:
+		set_button(control, port, value);
+		break;
+
+	case MIDI::Command::PAD:
+	case MIDI::Command::GRID:
+
+	/* Transport control */
+	case MIDI::Command::LOOP:
+	case MIDI::Command::REWIND:
+	case MIDI::Command::FORWARD:
+	case MIDI::Command::STOP:
+	case MIDI::Command::PLAY:
+	case MIDI::Command::RECORD:
+
+	/* Other actions */
+	case MIDI::Command::HOME:
+	case MIDI::Command::SET_LEFT:
+	case MIDI::Command::SET_RIGHT:
+	case MIDI::Command::UNDO:
+	case MIDI::Command::CLICK:
+	case MIDI::Command::MODE:
+	case MIDI::Command::MIXER:
+	case MIDI::Command::INSTRUMENT:
+	case MIDI::Command::PRESET:
+	case MIDI::Command::BANK:
+	case MIDI::Command::CLIPS:
+	case MIDI::Command::SCENES:
+	case MIDI::Command::PAGES:
+	case MIDI::Command::SHIFT:
+	case MIDI::Command::TRACK:
+	case MIDI::Command::PATTERN:
+	case MIDI::Command::TEMPO:
+	case MIDI::Command::CROSSFADE:
+		break;
+	}
+}
+
+void State::build_context_widget(void)
+{
+	auto program = programs.get_last_activated_program();
+	program->build_context_widget();
+}

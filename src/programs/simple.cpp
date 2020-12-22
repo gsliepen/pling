@@ -37,12 +37,12 @@ void Simple::Voice::release()
 	filter_envelope.release();
 }
 
-float Simple::Voice::get_zero_crossing(float offset, Simple::Parameters &params)
+float Simple::Voice::get_zero_crossing(float offset, const Parameters &params) const
 {
 	return osc.get_zero_crossing(offset, params.bend);
 }
 
-float Simple::Voice::get_frequency(Simple::Parameters &params)
+float Simple::Voice::get_frequency(const Parameters &params) const
 {
 	return osc.get_frequency(params.bend);
 }
@@ -58,20 +58,20 @@ bool Simple::render(Chunk &chunk)
 	return active;
 }
 
-float Simple::get_zero_crossing(float offset)
+float Simple::get_zero_crossing(float offset) const
 {
 	float crossing = offset;
 
-	if (Voice *lowest = voices.get_lowest(); lowest) {
+	if (auto lowest = voices.get_lowest(); lowest) {
 		crossing = lowest->get_zero_crossing(offset, params);
 	}
 
 	return crossing;
 }
 
-float Simple::get_base_frequency()
+float Simple::get_base_frequency() const
 {
-	if (Voice *lowest = voices.get_lowest(); lowest) {
+	if (auto lowest = voices.get_lowest(); lowest) {
 		return lowest->get_frequency(params);
 	} else
 		return {};

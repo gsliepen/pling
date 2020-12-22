@@ -27,12 +27,12 @@ public:
 		return false;
 	};
 
-	virtual float get_zero_crossing(float offset)
+	virtual float get_zero_crossing(float offset) const
 	{
 		return offset;
 	};
 
-	virtual float get_base_frequency(void)
+	virtual float get_base_frequency(void) const
 	{
 		return {};
 	};

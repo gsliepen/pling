@@ -66,7 +66,7 @@ void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_pr
 	last_activated_program = program;
 }
 
-float Program::Manager::get_zero_crossing(float offset)
+float Program::Manager::get_zero_crossing(float offset) const
 {
 	if (last_activated_program) {
 		return last_activated_program->get_zero_crossing(offset);
@@ -75,7 +75,7 @@ float Program::Manager::get_zero_crossing(float offset)
 	}
 }
 
-float Program::Manager::get_base_frequency()
+float Program::Manager::get_base_frequency() const
 {
 	if (last_activated_program) {
 		return last_activated_program->get_base_frequency();

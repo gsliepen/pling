@@ -405,7 +405,8 @@ void UI::build()
 	spectrum.build(w, h);
 
 	// Context sensitive widgets
-	ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
+	ImGui::SetNextWindowPos({16.0f, 16.0f});
+	//ImGui::SetNextWindowPos({16.0f, 16.0f + gh * 1.0f});
 	ImGui::SetNextWindowSize({gw * 2.0f, gh});
 	state.build_context_widget();
 

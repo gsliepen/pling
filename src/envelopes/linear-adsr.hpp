@@ -72,7 +72,7 @@ public:
 		state = State::release;
 	}
 
-	float update(Parameters &param);
+	float update(const Parameters &param);
 };
 
 }

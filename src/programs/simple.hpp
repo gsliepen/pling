@@ -44,8 +44,8 @@ class Simple: public Program
 		{
 			return amplitude_envelope.is_active();
 		}
-		float get_zero_crossing(float offset, Parameters &params);
-		float get_frequency(Parameters &params);
+		float get_zero_crossing(float offset, const Parameters &params) const;
+		float get_frequency(const Parameters &params) const;
 	};
 
 	VoiceManager<Voice, 32> voices;
@@ -92,8 +92,8 @@ public:
 	virtual void set_pot(MIDI::Control control, uint8_t val) final;
 	virtual void set_button(MIDI::Control control, uint8_t val) final;
 
-	virtual float get_zero_crossing(float offset) final;
-	virtual float get_base_frequency() final;
+	virtual float get_zero_crossing(float offset) const final;
+	virtual float get_base_frequency() const final;
 
 	virtual bool build_context_widget(void) final;
 

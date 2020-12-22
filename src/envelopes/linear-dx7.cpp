@@ -5,14 +5,26 @@
 namespace Envelope
 {
 
-float LinearADSR::update(const Parameters &param)
+float LinearDX7::update(const Parameters &param)
 {
-	switch (state) {
+	if (state < 3) {
+		amplitude += param.rate[state];
+
+		if ((param.rate[state] < 0 && amplitude < param.level[state]) || amplitude > param.level[state]))
+			amplitude = param.level[state];
+
+			state++;
+		}
+}
+
+if ()
+	switch (state)
+	{
 	case State::off:
 		amplitude = 0;
 		break;
 
-	case State::attack:
+	case State::attack1:
 		amplitude += param.attack;
 
 		if (amplitude >= 1) {
@@ -22,7 +34,7 @@ float LinearADSR::update(const Parameters &param)
 
 		break;
 
-	case State::decay:
+	case State::attack2:
 		amplitude -= param.decay;
 
 		if (amplitude < param.sustain) {
@@ -42,7 +54,7 @@ float LinearADSR::update(const Parameters &param)
 		break;
 	}
 
-	return amplitude;
+return amplitude;
 }
 
 }
