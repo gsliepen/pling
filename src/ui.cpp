@@ -9,6 +9,7 @@
 #include <SDL2/SDL_opengles2.h>
 #include <unistd.h>
 
+#include "clock.hpp"
 #include "config.hpp"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/backends/imgui_impl_sdl.h"
@@ -322,10 +323,28 @@ void UI::build_main_program()
 
 	ImGui::Text(fmt::format("Synth engine: {}", program->get_engine_name()).c_str());
 	ImGui::Separator();
-	ImGui::Selectable("Track: 01  Pattern: 01  Beat: 4/4  Tempo: 120");
+	ImGui::Selectable(fmt::format("Track: 01  Pattern: 01  Metre: 4/4  Tempo: {:3.0f}", master_clock.get_tempo()).c_str());
+	auto time = master_clock.get_time_position();
+	int hour = time / 3600;
+	time -= hour * 3600.0;
+	int minute = time / 60;
+	time -= minute * 60.0;
+	int second = time;
+	time -= second;
+	auto pos = master_clock.get_position();
 	ImGui::PushFont(big_font);
-	ImGui::Selectable("00:00:00");
+	ImGui::Selectable(fmt::format("Time: {:2d}:{:2d}:{:02d}", hour, minute, second).c_str());
 	ImGui::PopFont();
+	ImGui::SameLine();
+	ImGui::Selectable(fmt::format(".{:02d}", int(time * 100)).c_str());
+	int beat = pos.beat;
+	pos.beat -= beat;
+	ImGui::SameLine();
+	ImGui::PushFont(big_font);
+	ImGui::Selectable(fmt::format("Pos: {:3d}:{:2d}", pos.measure, beat).c_str());
+	ImGui::PopFont();
+	ImGui::SameLine();
+	ImGui::Selectable(fmt::format(".{:02d}", int(pos.beat * 100)).c_str());
 	ImGui::End();
 	ImGui::PopStyleColor();
 }

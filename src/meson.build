@@ -6,6 +6,7 @@ configure_file(
 )
 
 executable('pling',
+	'clock.cpp',
 	'config.cpp',
 	'controller.cpp',
 	'envelopes/exponential-adsr.cpp',

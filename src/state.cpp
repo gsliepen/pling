@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+#include "clock.hpp"
 #include "state.hpp"
-
 
 void State::set_pot(MIDI::Control control, MIDI::Port &port, int8_t value)
 {
@@ -73,10 +73,23 @@ void State::process_control(MIDI::Control control, MIDI::Port &port, const uint8
 
 	/* Transport control */
 	case MIDI::Command::LOOP:
+		break;
+
 	case MIDI::Command::REWIND:
+		master_clock.reset();
+		break;
+
 	case MIDI::Command::FORWARD:
+		break;
+
 	case MIDI::Command::STOP:
+		master_clock.stop();
+		break;
+
 	case MIDI::Command::PLAY:
+		master_clock.start();
+		break;
+
 	case MIDI::Command::RECORD:
 
 	/* Other actions */
