@@ -23,12 +23,18 @@ the Raspberry Pi, ASUS Tinkerboard, Odroid-XU4, and so on.
 
 The goal is to provide a variety of synthesis engines, each of which can be
 controlled via the pots and sliders of the MIDI controller as much as possible.
+Current engines are:
+
+* Octalope: an 8 operator synth supporting several basic waveforms, FM matrix modulation, and a 12 dB/octave filter.
+* Simple: a very simple sawtooth wave + filter
+* Karplus-Strong: a very simple implementation of the Karplus-Strong algorithm
+
 Planned engine types are:
 
-* Simple oscillators + filters
-* FM synthesis
 * Waveguide synthesis
 * Soundfonts (SF2, SFZ)
+* Granular synthesis
+* Sampler
 
 The engines should be efficient so we can get a high degree of polyphony
 even on small devices such as the Raspberry Pi.
