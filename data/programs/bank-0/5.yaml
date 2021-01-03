@@ -37,7 +37,7 @@ parameters:
       velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
     - frequency: 3
       detune: 0
-      output_level: 1
+      output_level: 0.5
       waveform: 3
       fixed_frequency: false
       sync_start: false
@@ -100,5 +100,5 @@ parameters:
     fixed_frequency: false
     tempo_sync: true
     envelope:
-      levels: [-24, -24, 24, 5.48031616]
-      durations: [0, 0.5, 10, 0.05]
+      levels: [-12, -12, 24, 5.48031616]
+      durations: [0, 0.1, 10, 0.05]
