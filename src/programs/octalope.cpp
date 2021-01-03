@@ -6,27 +6,93 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <iostream>
+#include <random>
 
+#include "clock.hpp"
 #include "pling.hpp"
 #include "../imgui/imgui.h"
 #include "../program-manager.hpp"
 #include "utils.hpp"
 
+static float rng(float range)
+{
+	std::uniform_real_distribution<float> dist{0.0f, range};
+	return dist(random_engine);
+}
+
+void Octalope::Operator::Parameters::update_frequency()
+{
+	if (fixed) {
+		frequency = std::exp2(frequency_coarse / 4 - 16) * (1.0f + frequency_fine / 120.0f);
+	} else {
+		float from = frequency_coarse >= 64 ? frequency_coarse - 63 : 1.0f / (65 - frequency_coarse);
+		float to = frequency_coarse >= 63 ? frequency_coarse - 62 : 1.0f / (64 - frequency_coarse);
+		frequency = from + (to - from) * frequency_fine / 120.0f;
+	}
+}
+
+void Octalope::Operator::Parameters::set_detune(uint8_t val)
+{
+	detune = (val - 64) * 10.0f / 60.0f;
+}
+
+void Octalope::Operator::Parameters::set_flags(uint8_t val)
+{
+	val >>= 4;
+	fixed = val & 1;
+	sync = val & 2;
+	tempo = val & 4;
+	update_frequency();
+}
+
+void Octalope::Parameters::Filter::update_frequency()
+{
+	if (fixed) {
+		frequency = std::exp2(frequency_coarse / 4 - 16) * (1.0f + frequency_fine / 120.0f);
+	} else {
+		float from = frequency_coarse >= 64 ? frequency_coarse - 63 : 1.0f / (65 - frequency_coarse);
+		float to = frequency_coarse >= 63 ? frequency_coarse - 62 : 1.0f / (64 - frequency_coarse);
+		frequency = from + (to - from) * frequency_fine / 120.0f;
+	}
+}
+
+void Octalope::Parameters::Filter::set_flags(uint8_t val)
+{
+	val >>= 5;
+	fixed = val & 1;
+	tempo = val & 2;
+	update_frequency();
+}
+
 bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 {
 	for (auto &sample : chunk.samples) {
 		float accum{};
-		float bend = params.bend * freq_envelope.update(params.freq_envelope);
 
-		for (int i = 0; i < 8; ++i) {
-			auto mod_source = params.ops[i].mod_source;
-			float pm = mod_source < 8 ? ops[mod_source].value * params.ops[i].fm_level : 0.0f;
-			ops[i].prev = ops[i].value;
+		// Determine the current voice frequency
+		float voice_freq = frequency.base * bend * frequency.envelope.update(params.frequency.envelope, frequency.rate);
+
+		if (params.frequency.lfo_depth) {
+			voice_freq *= std::exp2(params.frequency.lfo_depth / 12.0f * ops[7].value);
+		}
+
+		// Go backwards through all operators,
+		// since it's more likely that an operator is modulated by a higher number one,
+		// and this way they are more likely to be exactly in sync.
+		for (int i = 8; i--;) {
+			// Determine the amount of phase modulation
+			float pm{};
+
+			for (int j = 0; j < 8; ++j) {
+				pm += ops[j].value * params.ops[i].fm_level[j];
+			}
+
+			// Get the oscillator's output value
 			float value;
 
 			switch (params.ops[i].waveform % 5) {
 			case 0:
-				value = ops[i].osc.fast_sine(pm);
+				value = ops[i].osc.sine(pm);
 				break;
 
 			case 1:
@@ -45,50 +111,97 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 				value = ops[i].osc.revsaw(pm);
 				break;
 
+			// TODO: S/H, noise, unity?
+
 			default:
 				value = 0;
 				break;
 			}
 
-			ops[i].value = ops[i].envelope.update(params.ops[i].envelope) * value;
+			// Apply amplitude modulations
+			ops[i].value = ops[i].envelope.update(params.ops[i].envelope, ops[i].rate) * value * ops[i].output_level;
 
 			if (params.ops[i].am_level) {
-				ops[i].value *= ops[mod_source].value;
-			}
-
-			if (params.ops[i].rm_level) {
-				ops[i].value *= std::abs(ops[mod_source].value);
+				// assume ops[7].value has range -1..1
+				ops[i].value *= 1.0f + params.ops[i].am_level * (ops[7].value - 1.0f) * 0.5;
 			}
 
 			accum += ops[i].value * params.ops[i].output_level;
-			ops[i].osc.update(delta * params.ops[i].freq_ratio * bend + params.ops[i].detune / sample_rate);
+
+			// Update the unmodulated phase of the oscillator
+			float op_freq = params.ops[i].frequency;
+
+			if (!params.ops[i].fixed) {
+				op_freq *= voice_freq;
+			}
+
+			op_freq += params.ops[i].detune;
+			ops[i].osc.update(op_freq / sample_rate);
 		}
 
-		params.svf.set_freq(filter_envelope.update(params.filter_envelope) * freq);
-		sample += svf(params.svf, accum * amp);
+		// Apply the filter to the accumulated value so far
+		float filter_freq = filter.base * params.filter.frequency;
+
+		if (!params.filter.fixed) {
+			filter_freq *= voice_freq;
+		}
+
+		if (params.filter.lfo_depth) {
+			filter_freq *= std::exp2(params.filter.lfo_depth / 12.0f * ops[7].value);
+		}
+
+		params.filter.svf.set_freq(filter.envelope.update(params.filter.envelope, filter.rate) * filter_freq);
+		sample += filter.svf(params.filter.svf, accum);
 	}
 
 	return is_active();
 }
 
-void Octalope::Voice::init(uint8_t key, float freq, float amp, const Parameters &params)
+void Octalope::Voice::init(uint8_t key, float freq, float velocity, const Parameters &params)
 {
-	this->freq = freq;
-	this->delta = freq / sample_rate;
-	this->amp = amp;
-	freq_envelope.init(params.freq_envelope);
-	filter_envelope.init(params.filter_envelope);
+	frequency.base = freq * std::exp2(params.frequency.transpose / 12.0f) * std::exp2(rng(params.frequency.randomize / 12.0f));
+	frequency.envelope.init(params.frequency.envelope);
+	filter.base = std::exp2(rng(params.filter.randomize / 12.0f));
+	filter.envelope.init(params.filter.envelope);
 
 	for (int i = 0; i < 8; ++i) {
-		ops[i].envelope.init(params.ops[i].envelope);
-		ops[i].osc.init();
+		auto keyboard_level = params.ops[i].keyboard_level_curve(freq);
+		auto keyboard_rate = params.ops[i].keyboard_rate_curve(freq);
+		auto velocity_level = params.ops[i].velocity_level_curve(velocity);
+		auto velocity_rate = params.ops[i].velocity_rate_curve(velocity);
+
+		ops[i].output_level = glm::clamp(velocity_level + keyboard_level, 0.0f, 1.0f);
+		ops[i].rate = std::max(0.0f, velocity_rate + keyboard_rate);
+
+
+		if (params.ops[i].sync) {
+			ops[i].envelope.init(params.ops[i].envelope);
+			ops[i].osc.init();
+		} else {
+			ops[i].envelope.reinit(params.ops[i].envelope);
+		}
+
+		if (params.ops[i].tempo) {
+			ops[i].rate *= master_clock.get_tempo() / 120.0f;
+		}
+	}
+
+	frequency.rate = 1;
+	filter.rate = 1;
+
+	if (params.frequency.tempo) {
+		frequency.rate *= master_clock.get_tempo() / 120.0f;
+	}
+
+	if (params.filter.tempo) {
+		filter.rate *= master_clock.get_tempo() / 120.0f;
 	}
 }
 
 void Octalope::Voice::release()
 {
-	freq_envelope.release();
-	filter_envelope.release();
+	frequency.envelope.release();
+	filter.envelope.release();
 
 	for (auto &op : ops) {
 		op.envelope.release();
@@ -97,12 +210,12 @@ void Octalope::Voice::release()
 
 float Octalope::Voice::get_zero_crossing(float offset, const Parameters &params) const
 {
-	return ops[0].osc.get_zero_crossing(offset, delta * params.ops[0].freq_ratio * params.bend * freq_envelope.get());
+	return ops[0].osc.get_zero_crossing(offset, frequency.base * bend * frequency.envelope.get() / sample_rate);
 }
 
 float Octalope::Voice::get_frequency(const Parameters &params) const
 {
-	return freq * params.bend * freq_envelope.get();
+	return frequency.base * bend * frequency.envelope.get();
 }
 
 bool Octalope::render(Chunk &chunk)
@@ -155,14 +268,16 @@ void Octalope::note_off(uint8_t key, uint8_t vel)
 
 void Octalope::pitch_bend(int16_t value)
 {
-	params.bend = exp2(value / 8192.0 / 6.0);
+	for (auto &voice : voices) {
+		voice.bend = std::exp2(value / 8192.0 / 6.0);
+	}
 }
 
 void Octalope::modulation(uint8_t value) {}
 void Octalope::channel_pressure(int8_t pressure) {}
 void Octalope::poly_pressure(uint8_t key, uint8_t pressure) {}
 
-void Octalope::set_envelope(MIDI::Control control, uint8_t val, Envelope::ExponentialDX7::Parameters &envelope)
+void Octalope::set_envelope(MIDI::Control control, uint8_t val, Envelope::ExponentialDX7::Parameters &envelope, float from, float to)
 {
 	int i = control.col % 4;
 
@@ -171,7 +286,7 @@ void Octalope::set_envelope(MIDI::Control control, uint8_t val, Envelope::Expone
 	case 1:
 	case 2:
 	case 3:
-		envelope.level[i] = cc_linear(val, -24, 24);
+		envelope.level[i] = cc_linear(val, from, from, to, to);
 		set_context(Context::ENVELOPE);
 		break;
 
@@ -190,91 +305,240 @@ void Octalope::set_envelope(MIDI::Control control, uint8_t val, Envelope::Expone
 
 void Octalope::set_fader(MIDI::Control control, uint8_t val)
 {
-	if (current_op_held) {
-		if (current_op == 8) {
-			set_envelope(control, val, params.freq_envelope);
-		} else {
-			set_envelope(control, val, params.ops[current_op].envelope);
-		}
-	} else if (current_op == 8 && control.col < 8) {
-		set_envelope(control, val, params.filter_envelope);
-	} else if (control.col < 8) {
-		auto &op_params = params.ops[control.col];
-		op_params.output_level = val ? dB_to_amplitude(cc_linear(val, -48, 0)) : 0;
+	auto &op = params.ops[current_op];
+
+	switch (current_page) {
+	case Page::OPERATOR_WAVEFORM:
+		set_envelope(control, val, op.envelope, -48.0f, 0.0f);
+		set_context(Context::ENVELOPE);
+		break;
+
+	case Page::OPERATOR_MODULATION:
+		op.fm_level[control.col] = cc_linear(val, 0, 0, 1, 1);
 		set_context(Context::MAIN);
-	}
-};
+		break;
 
-void Octalope::set_pot(MIDI::Control control, uint8_t val)
-{
-	if (current_op_held) {
-		if (current_op < 8) {
-			auto &op_params = params.ops[current_op];
+	case Page::OPERATOR_SCALING: {
+		float depth = (val - 64.0f) * 0.1f;
 
-			switch (control.col) {
-			case 0:
-				op_params.freq_ratio = val >= 64 ? val - 63 : 1.0f / (64 - val);
-				set_context(Context::MAIN);
-				break;
-
-			case 1:
-				op_params.detune = cc_linear(val, -10, 10);
-				set_context(Context::MAIN);
-				break;
-
-			case 2:
-				op_params.mod_source = val ? val / 16 : Operator::Parameters::NO_SOURCE;
-				set_context(Context::MAIN);
-				break;
-
-			case 3:
-				op_params.am_level = val;
-				set_context(Context::MAIN);
-				break;
-
-			case 4:
-				op_params.rm_level = val;
-				set_context(Context::MAIN);
-				break;
-
-			case 5:
-				op_params.waveform = val / 26;
-				set_context(Context::MAIN);
-
-			case 6:
-			case 7:
-			default:
-				break;
-			}
-		}
-	} else if (current_op == 8) {
 		switch (control.col) {
 		case 0:
-			params.freq = cc_exponential(val, 0, 1, sample_rate / 6, sample_rate / 6);
-			params.svf.set(params.svf_type, params.freq, params.Q);
-			set_context(Context::MAIN);
+			op.keyboard_level_curve.left_depth = depth;
 			break;
 
-		case 1:
-			params.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
-			params.svf.set(params.svf_type, params.freq, params.Q);
-			set_context(Context::MAIN);
+		case 10:
+			op.keyboard_level_curve.right_depth = depth;
+			break;
+
+		case 2:
+			op.keyboard_rate_curve.left_depth = depth;
 			break;
 
 		case 3:
-			params.svf_type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 4));
-			params.svf.set(params.svf_type, params.freq, params.Q);
-			set_context(Context::MAIN);
+			op.keyboard_rate_curve.right_depth = depth;
+			break;
+
+		case 4:
+			op.velocity_level_curve.left_depth = depth;
+			break;
+
+		case 5:
+			op.velocity_level_curve.right_depth = depth;
+			break;
+
+		case 6:
+			op.velocity_rate_curve.left_depth = depth;
+			break;
+
+		case 7:
+			op.velocity_rate_curve.right_depth = depth;
 			break;
 
 		default:
 			break;
 		}
-	} else if (control.col < 8) {
-		auto &op_params = params.ops[control.col];
-		op_params.fm_level = val ? dB_to_amplitude(cc_linear(val, -48, 0)) : 0;
+
 		set_context(Context::MAIN);
+		break;
 	}
+
+	case Page::GLOBAL_PITCH:
+		set_envelope(control, val, params.frequency.envelope, -24.0f, 24.0f);
+		set_context(Context::ENVELOPE);
+		break;
+
+	case Page::GLOBAL_FILTER:
+		set_envelope(control, val, params.filter.envelope, -24.0f, 24.0f);
+		set_context(Context::ENVELOPE);
+		break;
+	}
+};
+
+void Octalope::set_pot(MIDI::Control control, uint8_t val)
+{
+	auto &op = params.ops[current_op];
+
+	switch (current_page) {
+	case Page::OPERATOR_WAVEFORM:
+		switch (control.col) {
+		case 0:
+			op.set_frequency_coarse(val);
+			break;
+
+		case 1:
+			op.set_frequency_fine(val);
+			break;
+
+		case 2:
+			op.set_detune(val);
+			break;
+
+		case 3:
+			op.set_flags(val);
+			break;
+
+		case 4:
+			op.waveform = cc_select(val, 5);
+			break;
+
+		case 5:
+			op.output_level = val ? cc_exponential(val, 0, 1.0f / 65536, 1, 1) : 0;
+			break;
+
+		case 7:
+			op.am_level = cc_linear(val, 0, 2);
+			break;
+
+		default:
+			break;
+		}
+
+		break;
+
+	case Page::OPERATOR_MODULATION:
+		switch (control.col) {
+		case 5:
+			op.output_level = val ? cc_exponential(val, 0, 1.0f / 65536, 1, 1) : 0;
+			break;
+
+		case 7:
+			op.am_level = cc_linear(val, 0, 2);
+			break;
+
+		default:
+			break;
+		}
+
+		break;
+
+	case Page::OPERATOR_SCALING:
+		switch (control.col) {
+		case 0:
+			op.keyboard_level_curve.breakpoint = key_to_frequency(val);
+			break;
+
+		case 1:
+			op.keyboard_level_curve.left_exponential = (val / 32) & 1;
+			op.keyboard_level_curve.right_exponential = (val / 32) & 2;
+			break;
+
+		case 2:
+			op.keyboard_rate_curve.breakpoint = key_to_frequency(val);
+			break;
+
+		case 3:
+			op.keyboard_rate_curve.left_exponential = (val / 32) & 1;
+			op.keyboard_rate_curve.right_exponential = (val / 32) & 2;
+			break;
+
+		case 4:
+			op.velocity_level_curve.breakpoint = cc_linear(val, 0, 1);
+			break;
+
+		case 5:
+			op.velocity_level_curve.left_exponential = (val / 32) & 1;
+			op.velocity_level_curve.right_exponential = (val / 32) & 2;
+			break;
+
+		case 6:
+			op.velocity_rate_curve.breakpoint = cc_linear(val, 0, 1);
+			break;
+
+		case 7:
+			op.velocity_rate_curve.left_exponential = (val / 32) & 1;
+			op.velocity_rate_curve.right_exponential = (val / 32) & 2;
+			break;
+
+		default:
+			break;
+		}
+
+		break;
+
+	case Page::GLOBAL_PITCH:
+		switch (control.col) {
+		case 0:
+			params.frequency.transpose = val - 64;
+			break;
+
+		case 2:
+			params.frequency.randomize = cc_exponential(val, 0, 0.01, 12, 12);
+			break;
+
+		case 3:
+			params.frequency.tempo = val / 64;
+			break;
+
+		case 7:
+			params.frequency.lfo_depth = cc_linear(val, 0, 12);
+			break;
+
+		default:
+			break;
+		}
+
+		break;
+
+	case Page::GLOBAL_FILTER:
+		switch (control.col) {
+		case 0:
+			params.filter.set_frequency_coarse(val);
+			break;
+
+		case 1:
+			params.filter.set_frequency_fine(val);
+			break;
+
+		case 2:
+			params.filter.randomize = cc_exponential(val, 0, 0.1, 48, 48);
+			break;
+
+		case 3:
+			params.filter.set_flags(val);
+			break;
+
+		case 4:
+			params.filter.type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 5));
+			params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
+			break;
+
+		case 5:
+			params.filter.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
+			params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
+			break;
+
+		case 7:
+			params.filter.lfo_depth = cc_linear(val, 0, 48);
+			break;
+
+		default:
+			break;
+		}
+
+		break;
+	}
+
+	set_context(Context::MAIN);
 }
 
 void Octalope::set_button(MIDI::Control control, uint8_t val)
@@ -283,18 +547,13 @@ void Octalope::set_button(MIDI::Control control, uint8_t val)
 		return;
 	}
 
-	if (control.col < 8) {
-		auto col = control.col + control.master * 8;
-
-		if (current_op == col) {
-			current_op_held ^= true;
-		} else {
-			current_op_held = true;
-		}
-
-		current_op = col;
-		set_context(Context::MAIN);
+	if (control.master) {
+		current_page = static_cast<Page>((static_cast<int>(current_page) + 1) % 5);
+	} else if (control.col < 8) {
+		current_op = control.col;
 	}
+
+	set_context(get_context() != Context::NONE ? get_context() : Context::MAIN);
 }
 
 void Octalope::sustain(bool val)
@@ -320,100 +579,205 @@ YAML::Node Octalope::save()
 	return yaml;
 }
 
-bool Octalope::build_main_widget()
+/*  Colorbrewer2 8 color "paired" */
+static const ImColor colors[] = {
+	ImColor(166, 206, 227, 128),
+	ImColor(31, 120, 180, 128),
+	ImColor(178, 223, 138, 128),
+	ImColor(51, 160, 44, 128),
+	ImColor(251, 154, 153, 128),
+	ImColor(227, 26, 28, 128),
+	ImColor(253, 191, 111, 128),
+	ImColor(255, 127, 0, 128),
+};
+
+bool Octalope::build_operator_waveform_widget()
 {
-	if (current_op_held) {
-		if (current_op < 8) {
-			const ImVec2 size{100, 100};
-			ImGui::Begin(fmt::format("Octalope Op{} parameters", current_op + 1).c_str(), nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
-			ImGui::BeginTable("octalope-parameters", 6);
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::VSliderFloat("##ratio", size, &params.ops[current_op].freq_ratio, 1.f / 64, 64.f);
-			ImGui::TableSetColumnIndex(1);
-			ImGui::VSliderFloat("##detune", size, &params.ops[current_op].detune, -10.f, 10.f);
-			ImGui::TableSetColumnIndex(2);
-			int src = params.ops[current_op].mod_source;
-			src = src > 7 ? 0 : src + 1;
-			ImGui::VSliderInt("##source", size, &src, 0, 8);
-			ImGui::TableSetColumnIndex(3);
-			ImGui::VSliderFloat("##AM", size, &params.ops[current_op].am_level, 0.f, 1.f);
-			ImGui::TableSetColumnIndex(4);
-			ImGui::VSliderFloat("##RM", size, &params.ops[current_op].rm_level, 0.f, 1.f);
-			ImGui::TableSetColumnIndex(5);
-			int waveform = params.ops[current_op].waveform + 1;
-			ImGui::VSliderInt("##waveform", size, &waveform, 0, 7);
-			ImGui::EndTable();
-			ImGui::End();
-		}
-	} else {
-		if (current_op < 8) {
-			ImGui::Begin("Octalope global parameters", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+	auto &op = params.ops[current_op];
 
-			ImGui::BeginTable("octalope-parameters", 9);
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Op");
+	switch (get_context()) {
+	case Context::MAIN: {
+		ImGui::Begin(fmt::format("Operator {} waveform", current_op + 1).c_str(), {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
 
-			for (int i = 0; i < 8; ++i) {
-				ImGui::TableSetColumnIndex(i + 1);
-				ImGui::Text(fmt::format("{}", i + 1).c_str());
-			}
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("Out");
-
-			for (int i = 0; i < 8; ++i) {
-				ImGui::TableSetColumnIndex(i + 1);
-				ImGui::SliderFloat("", &params.ops[i].output_level, 0.f, 1.f);
-			}
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("FM");
-
-			for (int i = 0; i < 8; ++i) {
-				ImGui::TableSetColumnIndex(i + 1);
-				ImGui::SliderFloat("", &params.ops[i].fm_level, 1.f / 64, 64.f);
-			}
-
-			ImGui::EndTable();
-			ImGui::End();
+		if (op.fixed) {
+			ImGui::InputFloat("Frequency", &op.frequency, 0.0f, 10000.0f);
 		} else {
-			const ImVec2 size{100, 100};
-			ImGui::Begin("Octalope filter parameters", nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
-			ImGui::BeginTable("octalope-parameters", 3);
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::VSliderFloat("##freq", size, &params.freq, 0, 24000);
-			ImGui::TableSetColumnIndex(1);
-			ImGui::VSliderFloat("##res", size, &params.Q, 0.f, 1.f);
-			ImGui::TableSetColumnIndex(2);
-			int type = static_cast<int>(params.svf_type);
-			ImGui::VSliderInt("##type", size, &type, 0, 7);
-			ImGui::EndTable();
-			ImGui::End();
+			ImGui::InputFloat("Ratio", &op.frequency, 0.0f, 64.0f);
 		}
+
+		ImGui::InputFloat("Detune", &op.detune, -10.f, 10.f);
+		ImGui::Checkbox("Fixed frequency", &op.fixed);
+		ImGui::SameLine();
+		ImGui::Checkbox("Sync start", &op.sync);
+		ImGui::SameLine();
+		ImGui::Checkbox("Tempo sync", &op.tempo);
+		static const char *waveform_names[] = {"Sine", "Triangle", "Square", "Saw", "Rev. Saw"};
+		int waveform = op.waveform;
+		ImGui::SliderInt("Waveform", &waveform, 0, 4, waveform_names[op.waveform]);
+		ImGui::InputFloat("Output level", &op.output_level, 0, 1.0f);
+		ImGui::End();
+		return true;
 	}
 
-	return true;
+	case Context::ENVELOPE:
+		return op.envelope.build_widget(fmt::format("Operator {}", current_op + 1), 0.0f, [&] {
+			for (int i = 0; i < 8; i++)
+			{
+				if (i != current_op) {
+					params.ops[i].envelope.build_curve(0.0f, colors[i]);
+				}
+			}
+		});
+
+	default:
+		return false;
+	}
+}
+
+bool Octalope::build_operator_modulation_widget()
+{
+	auto &op = params.ops[current_op];
+
+	switch (get_context()) {
+	case Context::MAIN:
+	case Context::ENVELOPE: {
+		ImGui::Begin(fmt::format("Operator {} modulation", current_op + 1).c_str(), {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+		ImGui::InputFloat("AM level", &op.am_level, 0.0f, 2.0f);
+		ImGui::BeginTable("operator-modulation", 2);
+
+		for (int i = 0; i < 8; i++) {
+			if ((i % 2) == 0) {
+				ImGui::TableNextRow();
+			}
+
+			ImGui::TableNextColumn();
+			ImGui::InputFloat(fmt::format("Op{} FM level", i + 1).c_str(), &op.fm_level[i], 0.0f, 1.0f);
+		}
+
+		ImGui::EndTable();
+		ImGui::End();
+		return true;
+	}
+
+	default:
+		return false;
+	}
+}
+
+bool Octalope::build_operator_scaling_widget()
+{
+	auto &op = params.ops[current_op];
+
+	switch (get_context()) {
+	case Context::MAIN:
+	case Context::ENVELOPE: {
+		ImGui::Begin(fmt::format("Operator {} scaling", current_op + 1).c_str(), {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+		ImGui::BeginTable("operator-scaling", 4);
+		ImGui::TableNextColumn();
+		ImGui::Text("Keyboard level");
+		ImGui::InputFloat("Left", &op.keyboard_level_curve.left_depth, -1.0f, 1.0f);
+		ImGui::InputFloat("Break", &op.keyboard_level_curve.breakpoint, 1.0f, 10000.0f);
+		ImGui::InputFloat("Right", &op.keyboard_level_curve.right_depth, -1.0f, 1.0f);
+		ImGui::TableNextColumn();
+		ImGui::Text("Keyboard rate");
+		ImGui::InputFloat("Left", &op.keyboard_rate_curve.left_depth, -1.0f, 1.0f);
+		ImGui::InputFloat("Break", &op.keyboard_rate_curve.breakpoint, 1.0f, 10000.0f);
+		ImGui::InputFloat("Right", &op.keyboard_rate_curve.right_depth, -1.0f, 1.0f);
+		ImGui::TableNextColumn();
+		ImGui::Text("Velocity level");
+		ImGui::InputFloat("Left", &op.velocity_level_curve.left_depth, -1.0f, 1.0f);
+		ImGui::InputFloat("Break", &op.velocity_level_curve.breakpoint, 0.0f, 1.0f);
+		ImGui::InputFloat("Right", &op.velocity_level_curve.right_depth, -1.0f, 1.0f);
+		ImGui::TableNextColumn();
+		ImGui::Text("Velocity rate");
+		ImGui::InputFloat("Left", &op.velocity_rate_curve.left_depth, -1.0f, 1.0f);
+		ImGui::InputFloat("Break", &op.velocity_rate_curve.breakpoint, 0.0f, 1.0f);
+		ImGui::InputFloat("Right", &op.velocity_rate_curve.right_depth, -1.0f, 1.0f);
+		ImGui::EndTable();
+		ImGui::End();
+		return true;
+	}
+
+	default:
+		return false;
+	}
+}
+
+bool Octalope::build_global_pitch_widget()
+{
+	switch (get_context()) {
+	case Context::MAIN: {
+		ImGui::Begin("Global pitch", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+		ImGui::InputFloat("Transpose", &params.frequency.transpose, 0.0f, 16.0f);
+		ImGui::InputFloat("Randomize", &params.frequency.randomize, 0.0f, 12.0f);
+		ImGui::Checkbox("Tempo sync", &params.frequency.tempo);
+		ImGui::InputFloat("Op8 mod depth", &params.frequency.lfo_depth, 0.0f, 2.0f);
+		ImGui::End();
+		return true;
+	}
+
+	case Context::ENVELOPE:
+		return params.frequency.envelope.build_widget(fmt::format("Pitch", int(current_op)));
+
+	default:
+		return false;
+	}
+}
+
+bool Octalope::build_global_filter_widget()
+{
+	switch (get_context()) {
+	case Context::MAIN: {
+		ImGui::Begin("Global filter", {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+
+		//ImGui::InputFloat("Frequency", &params.filter.frequency, 0.0f, 10000.0f);
+		if (params.filter.fixed) {
+			ImGui::InputFloat("Ratio", &params.filter.frequency, 0.0f, 64.0f);
+		} else {
+			ImGui::InputFloat("Frequency", &params.filter.frequency, 0.0f, 65536.0f);
+		}
+
+		ImGui::InputFloat("Randomize", &params.filter.randomize, 0.0f, 12.0f);
+		ImGui::Checkbox("Fixed frequency", &params.filter.fixed);
+		ImGui::Checkbox("Tempo sync", &params.filter.tempo);
+		static const char *type_names[] = {"Off", "12 dB Low pass", "12 dB High pass", "12 dB Band pass", "12 dB Notch"};
+		int type = static_cast<int>(params.filter.type);
+		ImGui::SliderInt("Type", &type, 0, 4, type_names[type]);
+		ImGui::InputFloat("Q", &params.filter.Q, 0, 100.0f);
+		ImGui::InputFloat("Op8 mod depth", &params.filter.lfo_depth, 0.0f, 16.0f);
+		ImGui::End();
+		return true;
+	}
+
+	case Context::ENVELOPE:
+		return params.filter.envelope.build_widget(fmt::format("Filter cutoff", int(current_op)));
+
+	default:
+		return false;
+	}
 }
 
 bool Octalope::build_context_widget()
 {
-	switch (get_context()) {
-	case Context::MAIN:
-		return build_main_widget();
+	if (get_context() == Context::NONE) {
+		return false;
+	}
 
-	case Context::ENVELOPE:
-		if (current_op < 8) {
-			return params.ops[current_op].envelope.build_widget(fmt::format("Operator {}", int(current_op)));
-		} else if (current_op_held) {
-			return params.freq_envelope.build_widget("Frequency", 24.0f);
-		} else {
-			return params.filter_envelope.build_widget("Filter cutoff", 24.0f);
-		}
+	switch (current_page) {
+	case Page::OPERATOR_WAVEFORM:
+		return build_operator_waveform_widget();
+
+	case Page::OPERATOR_MODULATION:
+		return build_operator_modulation_widget();
+
+	case Page::OPERATOR_SCALING:
+		return build_operator_scaling_widget();
+
+	case Page::GLOBAL_PITCH:
+		return build_global_pitch_widget();
+
+	case Page::GLOBAL_FILTER:
+		return build_global_filter_widget();
 
 	default:
 		return false;

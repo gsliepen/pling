@@ -23,6 +23,9 @@ Program::Manager programs;
 Config config;
 float sample_rate = 48000;
 
+static std::random_device random_device;
+thread_local std::default_random_engine random_engine(random_device());
+
 State state;
 MIDI::Manager MIDI::manager(programs);
 
@@ -33,11 +36,18 @@ static void audio_callback(void *userdata, uint8_t *stream, int len)
 	/* Render samples from active programs */
 	programs.render(chunk);
 
+	/* Add delay effect */
+	const int nsamples = len / 4;
+
+	for (int i = 0; i < nsamples; ++i) {
+		chunk.samples[i] += ringbuffer[i - 10000] * 0.25;
+		chunk.samples[i] += ringbuffer[i - 10002] * -0.25;
+	}
+
 	/* Add the samples to the oscilloscope */
 	ringbuffer.add(chunk, programs.get_zero_crossing(-384), programs.get_base_frequency());
 
 	/* Convert to 16-bit signed stereo */
-	int nsamples = len / 4;
 	int16_t *data = (int16_t *)stream;
 	float amplitude = state.get_master_volume() * 0.25f; // leave ~12 dB headroom
 

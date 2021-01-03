@@ -7,6 +7,7 @@
 
 #include "../pling.hpp"
 #include "../utils.hpp"
+#include "../imgui/imgui.h"
 
 namespace Envelope
 {
@@ -28,8 +29,14 @@ public:
 		float level[4] {};
 		float duration[4] {};
 
-		bool build_widget(const std::string &name, float bimodal = 0.0f);
+		void build_curve(float bimodal, ImColor color) const;
+		bool build_widget(const std::string &name, float bimodal = 0.0f, std::function<void()> callback = [] {}) const;
 	};
+
+	void reinit(const Parameters &param)
+	{
+		state = State::attack1;
+	}
 
 	void init(const Parameters &param)
 	{
@@ -47,7 +54,7 @@ public:
 		state = State::release;
 	}
 
-	float update(const Parameters &param);
+	float update(const Parameters &param, float rate_scaling = 1.0f);
 
 	constexpr float get() const
 	{

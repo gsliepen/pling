@@ -11,7 +11,7 @@
 class Clock
 {
 public:
-    using wall_clock = std::chrono::steady_clock;
+	using wall_clock = std::chrono::steady_clock;
 
 	struct Metre {
 		unsigned int upper;

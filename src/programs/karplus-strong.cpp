@@ -11,8 +11,6 @@
 #include "../program-manager.hpp"
 #include "utils.hpp"
 
-static std::random_device random_device;
-static std::default_random_engine random_engine(random_device());
 static std::uniform_real_distribution<float> uniform_distribution(-1.0f, 1.0f);
 
 bool KarplusStrong::Voice::render(Chunk &chunk, Parameters &params)

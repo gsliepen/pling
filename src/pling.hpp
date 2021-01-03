@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <random>
 #include <vector>
 
 #include "config.hpp"
@@ -16,6 +17,8 @@ extern float sample_rate;
 static const size_t chunk_size = 128;
 
 extern Config config;
+
+extern thread_local std::default_random_engine random_engine;
 
 struct Chunk {
 	std::array<float, chunk_size> samples;
@@ -81,6 +84,11 @@ public:
 	const size_t get_tail() const
 	{
 		return tail;
+	}
+
+	float &operator[](ptrdiff_t offset)
+	{
+		return samples[(tail + offset) % samples.size()];
 	}
 };
 

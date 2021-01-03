@@ -18,6 +18,7 @@ class StateVariable
 public:
 	struct Parameters {
 		enum class Type {
+			none,
 			lowpass,
 			highpass,
 			bandpass,
@@ -49,6 +50,10 @@ public:
 		band = params.f * high + band;
 
 		switch (params.type) {
+		case Parameters::Type::none:
+			return in;
+			break;
+
 		case Parameters::Type::lowpass:
 			return low;
 			break;

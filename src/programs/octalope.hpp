@@ -7,6 +7,8 @@
 
 #include "voice-manager.hpp"
 #include "../controller.hpp"
+#include "../curves/keyboard-scaling-dx7.hpp"
+#include "../curves/velocity-scaling-dx7.hpp"
 #include "../envelopes/exponential-dx7.hpp"
 #include "../filters/state-variable.hpp"
 #include "../pling.hpp"
@@ -19,56 +21,108 @@ class Octalope: public Program
 {
 	struct Operator {
 		struct Parameters {
-			static constexpr uint8_t NO_SOURCE = 255;
-			uint8_t mod_source{NO_SOURCE};
-			uint8_t keyboard_breakpoint;
-			float freq_ratio{1};
+			float frequency{1};
 			float detune{};
 			float output_level{};
-			float fm_level{};
-			float am_level{};
-			float rm_level{};
-			float keyboard_scaling[2];
+			uint8_t waveform{};
+			uint8_t frequency_coarse{64};
+			uint8_t frequency_fine{};
+			bool fixed{};
+			bool sync{};
+			bool tempo{};
+			float fm_level[8] {};
+			float am_level;
+
 			Envelope::ExponentialDX7::Parameters envelope{};
-			uint8_t waveform;
-			uint8_t freq_coarse;
-			uint8_t freq_fine;
+			Curve::KeyboardScalingDX7 keyboard_level_curve{440, false, false, 0, 0};
+			Curve::KeyboardScalingDX7 keyboard_rate_curve{440, false, false, 0, 0};
+			Curve::VelocityScalingDX7 velocity_level_curve{1.0, true, false, -6, 0};
+			Curve::VelocityScalingDX7 velocity_rate_curve{1.0, false, false, 0, 0};
+
+			void set_frequency_coarse(uint8_t val)
+			{
+				frequency_coarse = val;
+				update_frequency();
+			};
+			void set_frequency_fine(uint8_t val)
+			{
+				frequency_fine = val;
+				update_frequency();
+			};
+			void set_detune(uint8_t val);
+			void set_flags(uint8_t val);
+
+		private:
+			void update_frequency();
 		};
 
 		Oscillator::PM osc;
 		Envelope::ExponentialDX7 envelope;
+		float output_level;
+		float rate{1};
 		float value{};
-		float prev{};
 	};
 
 	struct Parameters {
-		float bend{1};
-		float freq{sample_rate / 4};
-		float Q{};
-		Envelope::ExponentialDX7::Parameters freq_envelope{};
-		Envelope::ExponentialDX7::Parameters filter_envelope{};
-		Operator::Parameters ops[8] = {
-			{1, 60, 1, 0, 1},
-			{2, 60, 2, 0, 0},
-			{3, 60, 3, 0, 0},
-			{4, 60, 4, 0, 0},
-			{5, 60, 5, 0, 0},
-			{6, 60, 6, 0, 0},
-			{7, 60, 7, 0, 0},
-			{7, 60, 8, 0, 0},
-		};
-		Filter::StateVariable::Parameters svf{};
-		Filter::StateVariable::Parameters::Type svf_type{};
+		struct Frequency {
+			float transpose{1};
+			float randomize{};
+			float lfo_depth{};
+			bool tempo{};
+			Envelope::ExponentialDX7::Parameters envelope{};
+		} frequency;
+
+		Operator::Parameters ops[8] {};
+
+		struct Filter {
+			float lfo_depth{};
+			::Filter::StateVariable::Parameters svf{};
+			Envelope::ExponentialDX7::Parameters envelope{};
+
+			float frequency{1};
+			float Q{1};
+			float randomize{};
+			uint8_t frequency_coarse{64};
+			uint8_t frequency_fine{};
+			bool fixed{};
+			bool tempo{};
+			::Filter::StateVariable::Parameters::Type type{};
+
+			void set_frequency_coarse(uint8_t val)
+			{
+				frequency_coarse = val;
+				update_frequency();
+			}
+
+			void set_frequency_fine(uint8_t val)
+			{
+				frequency_fine = val;
+				update_frequency();
+			}
+
+			void set_flags(uint8_t val);
+		private:
+			void update_frequency();
+		} filter;
 	};
 
 	struct Voice {
-		float amp;
-		float freq;
-		float delta;
-		Envelope::ExponentialDX7 freq_envelope;
-		Envelope::ExponentialDX7 filter_envelope;
+		float bend{1};
+
+		struct {
+			Envelope::ExponentialDX7 envelope;
+			float base;
+			float rate{1};
+		} frequency;
+
+		struct {
+			Envelope::ExponentialDX7 envelope;
+			Filter::StateVariable svf;
+			float base;
+			float rate{1};
+		} filter;
+
 		Operator ops[8];
-		Filter::StateVariable svf;
 
 		void init(uint8_t key, float freq, float vel, const Parameters &params);
 		bool render(Chunk &chunk, Parameters &params);
@@ -91,8 +145,15 @@ class Octalope: public Program
 		ENVELOPE,
 	} current_context{};
 
-	uint8_t current_op{};
-	bool current_op_held{};
+	enum class Page {
+		OPERATOR_WAVEFORM,
+		OPERATOR_MODULATION,
+		OPERATOR_SCALING,
+		GLOBAL_PITCH,
+		GLOBAL_FILTER,
+	} current_page{};
+
+	int current_op{};
 
 	using clock = std::chrono::steady_clock;
 	clock::time_point last_context_change{};
@@ -112,9 +173,13 @@ class Octalope: public Program
 		return current_context;
 	}
 
-	bool build_main_widget();
+	bool build_operator_waveform_widget();
+	bool build_operator_modulation_widget();
+	bool build_operator_scaling_widget();
+	bool build_global_pitch_widget();
+	bool build_global_filter_widget();
 
-	void set_envelope(MIDI::Control control, uint8_t val, Envelope::ExponentialDX7::Parameters &envelope);
+	void set_envelope(MIDI::Control control, uint8_t val, Envelope::ExponentialDX7::Parameters &envelope, float from, float to);
 
 public:
 	virtual bool render(Chunk &chunk) final;

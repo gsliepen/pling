@@ -12,7 +12,7 @@
 namespace Envelope
 {
 
-float ExponentialDX7::update(const Parameters &param)
+float ExponentialDX7::update(const Parameters &param, float rate_scaling)
 {
 	switch (state) {
 	case State::off:
@@ -30,7 +30,7 @@ float ExponentialDX7::update(const Parameters &param)
 			break;
 		}
 
-		float rate = std::abs(param.level[i] - param.level[i - 1]) / (param.duration[i - 1] * sample_rate);
+		float rate = 48.0f / (param.duration[i - 1] * sample_rate * rate_scaling);
 
 		if (amplitude > param.level[i]) {
 			amplitude -= rate;
@@ -62,7 +62,7 @@ float ExponentialDX7::update(const Parameters &param)
 			break;
 		}
 
-		float rate = std::abs(param.level[0] - param.level[3]) / (param.duration[3] * sample_rate);
+		float rate = 48.0f / (param.duration[3] * sample_rate);
 
 		if (amplitude > param.level[0]) {
 			amplitude -= rate;
@@ -88,9 +88,53 @@ float ExponentialDX7::update(const Parameters &param)
 	return dB_to_amplitude(amplitude);
 }
 
-bool ExponentialDX7::Parameters::build_widget(const std::string &name, float bimodal_range)
+void ExponentialDX7::Parameters::build_curve(float bimodal_range, ImColor color) const
+{
+	const auto widget_pos = ImGui::GetCursorScreenPos();
+	const auto region_min = ImGui::GetWindowContentRegionMin();
+	const auto region_max = ImGui::GetWindowContentRegionMax();
+
+	const auto x = widget_pos.x;
+	const auto y = widget_pos.y;
+	const auto w = region_max.x - region_min.x;
+	const auto h = region_max.y - region_min.y;
+
+	const float ct = y + h / 5.0f; /* curve top */
+	const float cb = y + h; /* curve bottom */
+	const float ch = cb - ct; /* curve height */
+	const float pps = (w - 64.0f) / 10.0f; /* pixels per second */
+
+	auto list = ImGui::GetWindowDrawList();
+
+	float heights[4];
+	float widths[4];
+
+	for (int i = 0; i < 4; ++i) {
+		if (bimodal_range) {
+			heights[i] = (0.5f + level[i] / bimodal_range) * ch;
+		} else {
+			heights[i] = (1.0f + level[i] / 48.0f) * ch;
+		}
+
+		widths[i] = pps * duration[i];
+	}
+
+	/* Draw the envelope shape */
+	std::array<ImVec2, 6> coords;
+	coords[0] = {x + 48, cb - heights[0]}; // attack1 start
+	coords[1] = {coords[0].x + widths[0], cb - heights[1]}; // attack2 start
+	coords[2] = {coords[1].x + widths[1], cb - heights[2]}; // attack3 start
+	coords[3] = {coords[2].x + widths[2], cb - heights[3]}; // sustain start
+	coords[4] = {coords[3].x + pps, cb - heights[3]}; // release start
+	coords[5] = {coords[4].x + widths[3], cb - heights[0]}; // release end
+
+	list->AddPolyline(coords.data(), coords.size(), color, false, 2);
+}
+
+bool ExponentialDX7::Parameters::build_widget(const std::string &name, float bimodal_range, std::function<void()> callback) const
 {
 	ImGui::Begin((name + " envelope").c_str(), nullptr, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
+	callback();
 
 	/* Get the window position and size */
 	const auto widget_pos = ImGui::GetCursorScreenPos();
