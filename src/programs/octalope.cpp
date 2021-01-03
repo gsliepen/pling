@@ -568,14 +568,111 @@ void Octalope::release_all()
 
 bool Octalope::load(const YAML::Node &yaml)
 {
-	// TODO: implement
+	int i = 0;
+
+	for (auto &node : yaml["operators"]) {
+		auto &op = params.ops[i++];
+		op.frequency = node["frequency"].as<float>(1);
+		op.detune = node["detune"].as<float>(0);
+		op.output_level = node["output_level"].as<float>(0);
+		op.waveform = node["waveform"].as<int>(0);
+		op.fixed = node["fixed_frequency"].as<bool>(false);
+		op.sync = node["sync_start"].as<bool>(false);
+		op.tempo = node["tempo_sync"].as<bool>(false);
+		int j = 0;
+
+		for (auto &fm : node["fm_level"]) {
+			op.fm_level[j++] = fm.as<float>(0);
+		}
+
+		op.am_level = node["am_level"].as<float>(0);
+
+		op.envelope.load(node["envelope"]);
+		op.keyboard_level_curve.load(node["keyboard_level_curve"]);
+		op.keyboard_rate_curve.load(node["keyboard_rate_curve"]);
+		op.velocity_level_curve.load(node["velocity_level_curve"]);
+		op.velocity_rate_curve.load(node["velocity_rate_curve"]);
+	}
+
+	{
+		auto &node = yaml["frequency"];
+		params.frequency.transpose = node["transpose"].as<float>(0);
+		params.frequency.randomize = node["randomize"].as<float>(0);
+		params.frequency.lfo_depth = node["lfo_depth"].as<float>(0);
+		params.frequency.tempo = node["tempo_sync"].as<bool>(false);
+		params.frequency.envelope.load(node["envelope"]);
+	}
+
+	{
+		auto &node = yaml["filter"];
+		params.filter.frequency = node["frequency"].as<float>(0);
+		params.filter.randomize = node["randomize"].as<float>(0);
+		params.filter.type = static_cast<Filter::StateVariable::Parameters::Type>(node["type"].as<int>(0));
+		params.filter.Q = node["Q"].as<float>(0);
+		params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
+		params.filter.lfo_depth = node["lfo_depth"].as<float>(0);
+		params.filter.fixed = node["fixed_frequency"].as<bool>(false);
+		params.filter.tempo = node["tempo_sync"].as<bool>(false);
+		params.filter.envelope.load(node["envelope"]);
+	}
+
 	return true;
 }
 
 YAML::Node Octalope::save()
 {
 	YAML::Node yaml;
-	// TODO: implement
+
+	for (int i = 0; i < 8; ++i) {
+		YAML::Node node;
+		auto &op = params.ops[i];
+		node["frequency"] = op.frequency;
+		node["detune"] = op.detune;
+		node["output_level"] = op.output_level;
+		node["waveform"] = int(op.waveform);
+		node["fixed_frequency"] = op.fixed;
+		node["sync_start"] = op.sync;
+		node["tempo_sync"] = op.tempo;
+
+		for (auto fm : op.fm_level) {
+			node["fm_level"].push_back(fm);
+		}
+
+		node["fm_level"].SetStyle(YAML::EmitterStyle::Flow);
+		node["am_level"] = op.am_level;
+
+		node["envelope"] = op.envelope.save();
+		node["keyboard_level_curve"] = op.keyboard_level_curve.save();
+		node["keyboard_rate_curve"] = op.keyboard_rate_curve.save();
+		node["velocity_level_curve"] = op.velocity_level_curve.save();
+		node["velocity_rate_curve"] = op.velocity_rate_curve.save();
+
+		yaml["operators"].push_back(node);
+	}
+
+	{
+		YAML::Node node;
+		node["transpose"] = params.frequency.transpose;
+		node["randomize"] = params.frequency.randomize;
+		node["lfo_depth"] = params.frequency.lfo_depth;
+		node["tempo_sync"] = params.frequency.tempo;
+		node["envelope"] = params.frequency.envelope.save();
+		yaml["frequency"] = node;
+	}
+
+	{
+		YAML::Node node;
+		node["frequency"] = params.filter.frequency;
+		node["randomize"] = params.filter.randomize;
+		node["type"] = static_cast<int>(params.filter.type);
+		node["Q"] = params.filter.Q;
+		node["lfo_depth"] = params.filter.lfo_depth;
+		node["fixed_frequency"] = params.filter.fixed;
+		node["tempo_sync"] = params.filter.tempo;
+		node["envelope"] = params.filter.envelope.save();
+		yaml["filter"] = node;
+	}
+
 	return yaml;
 }
 

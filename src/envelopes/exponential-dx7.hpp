@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 #include "../pling.hpp"
 #include "../utils.hpp"
@@ -31,6 +32,9 @@ public:
 
 		void build_curve(float bimodal, ImColor color) const;
 		bool build_widget(const std::string &name, float bimodal = 0.0f, std::function<void()> callback = [] {}) const;
+
+		void load(const YAML::Node &yaml);
+		YAML::Node save() const;
 	};
 
 	void reinit(const Parameters &param)

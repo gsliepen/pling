@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fmt/ostream.h>
 #include <iostream>
+#include <fstream>
 #include <yaml-cpp/yaml.h>
 
 #include "config.hpp"
@@ -64,6 +65,30 @@ void Program::Manager::change(std::shared_ptr<Program> &program, uint8_t MIDI_pr
 
 	selected_program = program;
 	last_activated_program = program;
+}
+
+void Program::Manager::save_selected_program()
+{
+	auto program = selected_program;
+	std::filesystem::path filename = "programs";
+	filename /= "bank-" + std::to_string(program->bank_lsb << 7 | program->bank_msb);
+	filename /= std::to_string(program->MIDI_program) + ".yaml";
+	auto path = config.get_save_path(filename);
+
+	YAML::Node program_config;
+	program_config["name"] = program->name;
+	program_config["engine"] = program->get_engine_name();
+	program_config["parameters"] = program->save();
+
+	std::ofstream file(path);
+	file << "---\n" << program_config << "\n";
+	file.close();
+
+	if (file.fail()) {
+		fmt::print(std::cerr, "Could not save to {}\n", path);
+	} else {
+		fmt::print(std::cerr, "Saved {}\n", path);
+	}
 }
 
 float Program::Manager::get_zero_crossing(float offset) const

@@ -367,7 +367,10 @@ void UI::build_buttons()
 	ImGui::SameLine();
 	ImGui::Button("Load", button_size);
 	ImGui::SameLine();
-	ImGui::Button("Save", button_size);
+
+	if (ImGui::Button("Save", button_size)) {
+		programs.save_selected_program();
+	}
 
 	if (ImGui::Button("Panic", button_size)) {
 		MIDI::manager.panic();

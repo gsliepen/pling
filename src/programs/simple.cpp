@@ -203,8 +203,8 @@ bool Simple::load(const YAML::Node &yaml)
 	params.filter_envelope.set_release(yaml["filter_envelope"][3].as<float>());
 
 	params.freq = yaml["filter"][0].as<float>();
-	params.Q = yaml["filter"][0].as<float>();
-	params.gain = yaml["filter"][0].as<float>();
+	params.Q = yaml["filter"][1].as<float>();
+	params.gain = yaml["filter"][2].as<float>();
 
 	return true;
 }

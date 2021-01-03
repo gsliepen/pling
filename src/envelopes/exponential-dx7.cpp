@@ -222,4 +222,27 @@ bool ExponentialDX7::Parameters::build_widget(const std::string &name, float bim
 	return true;
 }
 
+void ExponentialDX7::Parameters::load(const YAML::Node &node)
+{
+	for (int i = 0; i < 4; i++) {
+		level[i] = node["levels"][i].as<float>(0.42);
+		duration[i] = node["durations"][i].as<float>(0.123);
+	}
+}
+
+YAML::Node ExponentialDX7::Parameters::save() const
+{
+	YAML::Node node;
+
+	for (int i = 0; i < 4; i++) {
+		node["levels"].push_back(level[i]);
+		node["durations"].push_back(duration[i]);
+	}
+
+	node["levels"].SetStyle(YAML::EmitterStyle::Flow);
+	node["durations"].SetStyle(YAML::EmitterStyle::Flow);
+
+	return node;
+}
+
 }
