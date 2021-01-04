@@ -2,9 +2,11 @@
 
 #include "velocity-scaling-dx7.hpp"
 
-namespace Curve {
+namespace Curve
+{
 
-float VelocityScalingDX7::operator()(float velocity) const {
+float VelocityScalingDX7::operator()(float velocity) const
+{
 	float diff = velocity - breakpoint;
 
 	if (diff < 0.0f) {

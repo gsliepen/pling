@@ -12,9 +12,9 @@
 namespace Curve
 {
 
-  /**
-   * Velocity scaling curve
-   */
+/**
+ * Velocity scaling curve
+ */
 class VelocityScalingDX7
 {
 public:

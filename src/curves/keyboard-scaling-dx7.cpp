@@ -12,7 +12,8 @@
 namespace Curve
 {
 
-float KeyboardScalingDX7::operator()(float freq) const {
+float KeyboardScalingDX7::operator()(float freq) const
+{
 	float ratio = freq / breakpoint;
 
 	if (ratio < 1.0f) {
