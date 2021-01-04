@@ -32,6 +32,7 @@ class Octalope: public Program
 			bool tempo{};
 			float fm_level[8] {};
 			float am_level;
+			float mod_sensitivity{};
 
 			Envelope::ExponentialDX7::Parameters envelope{};
 			Curve::KeyboardScalingDX7 keyboard_level_curve{440, false, false, 0, 0};
@@ -64,10 +65,15 @@ class Octalope: public Program
 	};
 
 	struct Parameters {
+		float bend{};
+		float modulation{};
+
 		struct Frequency {
 			float transpose{1};
 			float randomize{};
 			float lfo_depth{};
+			float bend_sensitivity{2};
+			float mod_sensitivity{};
 			bool tempo{};
 			Envelope::ExponentialDX7::Parameters envelope{};
 		} frequency;
@@ -86,6 +92,8 @@ class Octalope: public Program
 			uint8_t frequency_fine{};
 			bool fixed{};
 			bool tempo{};
+			float bend_sensitivity{0};
+			float mod_sensitivity{};
 			::Filter::StateVariable::Parameters::Type type{};
 
 			void set_frequency_coarse(uint8_t val)
@@ -107,7 +115,6 @@ class Octalope: public Program
 	};
 
 	struct Voice {
-		float bend{1};
 
 		struct {
 			Envelope::ExponentialDX7 envelope;

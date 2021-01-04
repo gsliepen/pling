@@ -70,10 +70,10 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 		float accum{};
 
 		// Determine the current voice frequency
-		float voice_freq = frequency.base * bend * frequency.envelope.update(params.frequency.envelope, frequency.rate);
+		float voice_freq = frequency.base * std::exp2(params.bend * params.frequency.bend_sensitivity / 12.0f) * frequency.envelope.update(params.frequency.envelope, frequency.rate);
 
-		if (params.frequency.lfo_depth) {
-			voice_freq *= std::exp2(params.frequency.lfo_depth / 12.0f * ops[7].value);
+		if (params.frequency.lfo_depth || params.modulation) {
+			voice_freq *= std::exp2((params.frequency.lfo_depth + params.frequency.mod_sensitivity * params.modulation) / 12.0f * ops[7].value);
 		}
 
 		// Go backwards through all operators,
@@ -119,11 +119,11 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 			}
 
 			// Apply amplitude modulations
-			ops[i].value = ops[i].envelope.update(params.ops[i].envelope, ops[i].rate) * value * ops[i].output_level;
+			ops[i].value = ops[i].envelope.update(params.ops[i].envelope, ops[i].rate) * value * (ops[i].output_level);
 
-			if (params.ops[i].am_level) {
+			if (params.ops[i].am_level || params.modulation) {
 				// assume ops[7].value has range -1..1
-				ops[i].value *= 1.0f + params.ops[i].am_level * (ops[7].value - 1.0f) * 0.5;
+				ops[i].value *= 1.0f + (params.ops[i].am_level + params.modulation * params.ops[i].mod_sensitivity) * (ops[7].value - 1.0f) * 0.5;
 			}
 
 			accum += ops[i].value * params.ops[i].output_level;
@@ -146,8 +146,12 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 			filter_freq *= voice_freq;
 		}
 
-		if (params.filter.lfo_depth) {
-			filter_freq *= std::exp2(params.filter.lfo_depth / 12.0f * ops[7].value);
+		if (params.filter.lfo_depth || params.filter.mod_sensitivity) {
+			filter_freq *= std::exp2((params.filter.lfo_depth + params.modulation * params.filter.mod_sensitivity) / 12.0f * ops[7].value);
+		}
+
+		if (params.filter.bend_sensitivity) {
+			filter_freq *= std::exp2(params.bend * params.filter.bend_sensitivity / 12.0f);
 		}
 
 		params.filter.svf.set_freq(filter.envelope.update(params.filter.envelope, filter.rate) * filter_freq);
@@ -210,12 +214,12 @@ void Octalope::Voice::release()
 
 float Octalope::Voice::get_zero_crossing(float offset, const Parameters &params) const
 {
-	return ops[0].osc.get_zero_crossing(offset, frequency.base * bend * frequency.envelope.get() / sample_rate);
+	return ops[0].osc.get_zero_crossing(offset, frequency.base * std::exp2(params.bend * params.frequency.bend_sensitivity / 12.0f) * frequency.envelope.get() / sample_rate);
 }
 
 float Octalope::Voice::get_frequency(const Parameters &params) const
 {
-	return frequency.base * bend * frequency.envelope.get();
+	return frequency.base * std::exp2(params.bend * params.frequency.bend_sensitivity / 12.0f) * frequency.envelope.get();
 }
 
 bool Octalope::render(Chunk &chunk)
@@ -268,12 +272,14 @@ void Octalope::note_off(uint8_t key, uint8_t vel)
 
 void Octalope::pitch_bend(int16_t value)
 {
-	for (auto &voice : voices) {
-		voice.bend = std::exp2(value / 8192.0 / 6.0);
-	}
+	params.bend = value / 8192.0;
 }
 
-void Octalope::modulation(uint8_t value) {}
+void Octalope::modulation(uint8_t value)
+{
+	params.modulation = cc_linear(value, 0, 1);
+}
+
 void Octalope::channel_pressure(int8_t pressure) {}
 void Octalope::poly_pressure(uint8_t key, uint8_t pressure) {}
 
@@ -405,10 +411,6 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			op.output_level = val ? cc_exponential(val, 0, 1.0f / 65536, 1, 1) : 0;
 			break;
 
-		case 7:
-			op.am_level = cc_linear(val, 0, 2);
-			break;
-
 		default:
 			break;
 		}
@@ -417,8 +419,8 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 
 	case Page::OPERATOR_MODULATION:
 		switch (control.col) {
-		case 5:
-			op.output_level = val ? cc_exponential(val, 0, 1.0f / 65536, 1, 1) : 0;
+		case 6:
+			op.mod_sensitivity = cc_linear(val, 0, 2);
 			break;
 
 		case 7:
@@ -489,6 +491,18 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			params.frequency.tempo = val / 64;
 			break;
 
+		case 4:
+			params.filter.bend_sensitivity = (val - 64) * 2.0f;
+			break;
+
+		case 5:
+			params.frequency.bend_sensitivity = (val - 64) / 2.0f;
+			break;
+
+		case 6:
+			params.frequency.mod_sensitivity = cc_linear(val, 0, 12);
+			break;
+
 		case 7:
 			params.frequency.lfo_depth = cc_linear(val, 0, 12);
 			break;
@@ -523,8 +537,12 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			break;
 
 		case 5:
-			params.filter.Q = cc_exponential(val, 1, 1, 1e2, 1e2);
+			params.filter.Q = cc_exponential(val, 0, 1, 1e2, 1e2);
 			params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
+			break;
+
+		case 6:
+			params.filter.mod_sensitivity = cc_linear(val, 0, 48);
 			break;
 
 		case 7:
@@ -585,6 +603,7 @@ bool Octalope::load(const YAML::Node &yaml)
 			op.fm_level[j++] = fm.as<float>(0);
 		}
 
+		op.mod_sensitivity = node["mod_sensitivity"].as<float>(0);
 		op.am_level = node["am_level"].as<float>(0);
 
 		op.envelope.load(node["envelope"]);
@@ -598,6 +617,8 @@ bool Octalope::load(const YAML::Node &yaml)
 		auto &node = yaml["frequency"];
 		params.frequency.transpose = node["transpose"].as<float>(0);
 		params.frequency.randomize = node["randomize"].as<float>(0);
+		params.frequency.bend_sensitivity = node["bend_sensitivity"].as<float>(2);
+		params.frequency.mod_sensitivity = node["mod_sensitivity"].as<float>(0);
 		params.frequency.lfo_depth = node["lfo_depth"].as<float>(0);
 		params.frequency.tempo = node["tempo_sync"].as<bool>(false);
 		params.frequency.envelope.load(node["envelope"]);
@@ -610,6 +631,8 @@ bool Octalope::load(const YAML::Node &yaml)
 		params.filter.type = static_cast<Filter::StateVariable::Parameters::Type>(node["type"].as<int>(0));
 		params.filter.Q = node["Q"].as<float>(0);
 		params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
+		params.filter.bend_sensitivity = node["bend_sensitivity"].as<float>(0);
+		params.filter.mod_sensitivity = node["mod_sensitivity"].as<float>(0);
 		params.filter.lfo_depth = node["lfo_depth"].as<float>(0);
 		params.filter.fixed = node["fixed_frequency"].as<bool>(false);
 		params.filter.tempo = node["tempo_sync"].as<bool>(false);
@@ -639,6 +662,7 @@ YAML::Node Octalope::save()
 		}
 
 		node["fm_level"].SetStyle(YAML::EmitterStyle::Flow);
+		node["mod_sensitivity"] = op.mod_sensitivity;
 		node["am_level"] = op.am_level;
 
 		node["envelope"] = op.envelope.save();
@@ -654,6 +678,8 @@ YAML::Node Octalope::save()
 		YAML::Node node;
 		node["transpose"] = params.frequency.transpose;
 		node["randomize"] = params.frequency.randomize;
+		node["bend_sensitivity"] = params.frequency.bend_sensitivity;
+		node["mod_sensitivity"] = params.frequency.mod_sensitivity;
 		node["lfo_depth"] = params.frequency.lfo_depth;
 		node["tempo_sync"] = params.frequency.tempo;
 		node["envelope"] = params.frequency.envelope.save();
@@ -666,6 +692,8 @@ YAML::Node Octalope::save()
 		node["randomize"] = params.filter.randomize;
 		node["type"] = static_cast<int>(params.filter.type);
 		node["Q"] = params.filter.Q;
+		node["bend_sensitivity"] = params.filter.bend_sensitivity;
+		node["mod_sensitivity"] = params.filter.mod_sensitivity;
 		node["lfo_depth"] = params.filter.lfo_depth;
 		node["fixed_frequency"] = params.filter.fixed;
 		node["tempo_sync"] = params.filter.tempo;
@@ -712,6 +740,8 @@ bool Octalope::build_operator_waveform_widget()
 		int waveform = op.waveform;
 		ImGui::SliderInt("Waveform", &waveform, 0, 4, waveform_names[op.waveform]);
 		ImGui::InputFloat("Output level", &op.output_level, 0, 1.0f);
+		ImGui::InputFloat("Mod sensitivity", &op.mod_sensitivity, 0, 2.0f);
+		ImGui::InputFloat("Op8 mod depth", &op.am_level, 0, 2.0f);
 		ImGui::End();
 		return true;
 	}
@@ -739,7 +769,8 @@ bool Octalope::build_operator_modulation_widget()
 	case Context::MAIN:
 	case Context::ENVELOPE: {
 		ImGui::Begin(fmt::format("Operator {} modulation", current_op + 1).c_str(), {}, (ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar) | ImGuiWindowFlags_NoSavedSettings);
-		ImGui::InputFloat("AM level", &op.am_level, 0.0f, 2.0f);
+		ImGui::InputFloat("Mod sensitivity", &op.mod_sensitivity, 0.0f, 2.0f);
+		ImGui::InputFloat("Op8 mod depth", &op.am_level, 0.0f, 2.0f);
 		ImGui::BeginTable("operator-modulation", 2);
 
 		for (int i = 0; i < 8; i++) {
@@ -808,6 +839,9 @@ bool Octalope::build_global_pitch_widget()
 		ImGui::InputFloat("Transpose", &params.frequency.transpose, 0.0f, 16.0f);
 		ImGui::InputFloat("Randomize", &params.frequency.randomize, 0.0f, 12.0f);
 		ImGui::Checkbox("Tempo sync", &params.frequency.tempo);
+		ImGui::InputFloat("Filter bend sensitivity", &params.filter.bend_sensitivity, 0, 2.0f);
+		ImGui::InputFloat("Bend sensitivity", &params.frequency.bend_sensitivity, 0, 2.0f);
+		ImGui::InputFloat("Mod sensitivity", &params.frequency.mod_sensitivity, 0, 2.0f);
 		ImGui::InputFloat("Op8 mod depth", &params.frequency.lfo_depth, 0.0f, 2.0f);
 		ImGui::End();
 		return true;
@@ -836,11 +870,13 @@ bool Octalope::build_global_filter_widget()
 
 		ImGui::InputFloat("Randomize", &params.filter.randomize, 0.0f, 12.0f);
 		ImGui::Checkbox("Fixed frequency", &params.filter.fixed);
+		ImGui::SameLine();
 		ImGui::Checkbox("Tempo sync", &params.filter.tempo);
 		static const char *type_names[] = {"Off", "12 dB Low pass", "12 dB High pass", "12 dB Band pass", "12 dB Notch"};
 		int type = static_cast<int>(params.filter.type);
 		ImGui::SliderInt("Type", &type, 0, 4, type_names[type]);
 		ImGui::InputFloat("Q", &params.filter.Q, 0, 100.0f);
+		ImGui::InputFloat("Mod sensitivity", &params.filter.mod_sensitivity, 0, 2.0f);
 		ImGui::InputFloat("Op8 mod depth", &params.filter.lfo_depth, 0.0f, 16.0f);
 		ImGui::End();
 		return true;
