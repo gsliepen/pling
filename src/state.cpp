@@ -117,6 +117,7 @@ void State::process_control(MIDI::Control control, MIDI::Port &port, const uint8
 
 void State::build_context_widget(void)
 {
-	auto program = programs.get_last_activated_program();
-	program->build_context_widget();
+	if (auto program = programs.get_last_activated_program()) {
+		program->build_context_widget();
+	}
 }
