@@ -3,23 +3,24 @@ name: Bass 1
 engine: Octalope
 parameters:
   operators:
-    - frequency: 0.5
+    - frequency: 1
       detune: 0
       output_level: 1
       waveform: 0
       fixed_frequency: false
       sync_start: true
       tempo_sync: false
-      fm_level: [0, 0.4, 0.46, 0, 0.42, 0, 0, 0]
+      fm_level: [0, 0.33, 0.5, 0, 0.35, 0, 0, 0]
+      mod_sensitivity: 0
       am_level: 0
       envelope:
         levels: [-48, 0, 0, -24]
-        durations: [0.05, 0.5, 10, 0.5]
+        durations: [0, 0.5, 10, 0.5]
       keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
       keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
       velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
       velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
-    - frequency: 0.5
+    - frequency: 1
       detune: 0
       output_level: 0
       waveform: 0
@@ -27,63 +28,67 @@ parameters:
       sync_start: true
       tempo_sync: false
       fm_level: [0, 0, 0, 0, 0, 0, 0, 0]
-      am_level: 0
-      envelope:
-        levels: [-48, -48, -48, 0]
-        durations: [0.01, 10, 50, 50]
-      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
-      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
-    - frequency: 0.5
-      detune: 0
-      output_level: 0
-      waveform: 0
-      fixed_frequency: false
-      sync_start: true
-      tempo_sync: false
-      fm_level: [0, 0, 0, 0.45, 0, 0, 0, 0]
-      am_level: 0
-      envelope:
-        levels: [-48, -6, -12, -48]
-        durations: [0.1, 0.05, 5, 5]
-      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
-      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
-    - frequency: 5
-      detune: 0
-      output_level: 0
-      waveform: 0
-      fixed_frequency: false
-      sync_start: true
-      tempo_sync: false
-      fm_level: [0, 0, 0, 0, 0, 0, 0, 0]
-      am_level: 0
-      envelope:
-        levels: [-48, -4, -24, -48]
-        durations: [0.1, 5, 10, 5]
-      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
-      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
-    - frequency: 0.5
-      detune: 0
-      output_level: 0
-      waveform: 0
-      fixed_frequency: true
-      sync_start: true
-      tempo_sync: false
-      fm_level: [0, 0, 0, 0, 0, 0.42, 0, 0]
+      mod_sensitivity: 0
       am_level: 0
       envelope:
         levels: [-48, 0, -48, -48]
-        durations: [0.1, 50, 50, 50]
+        durations: [0, 8, 10, 10]
+      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: true, breakpoint: 0}
+      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
+    - frequency: 1
+      detune: 0
+      output_level: 0
+      waveform: 0
+      fixed_frequency: false
+      sync_start: true
+      tempo_sync: false
+      fm_level: [0, 0, 0, 0.43, 0, 0, 0, 0]
+      mod_sensitivity: 0
+      am_level: 0
+      envelope:
+        levels: [-48, -10, -18, -48]
+        durations: [0, 0.04, 0.85, 0.3]
+      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: true, breakpoint: 1}
+      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
+    - frequency: 10
+      detune: 0
+      output_level: 0
+      waveform: 0
+      fixed_frequency: false
+      sync_start: true
+      tempo_sync: false
+      fm_level: [0, 0, 0, 0, 0, 0, 0, 0]
+      mod_sensitivity: 0
+      am_level: 0
+      envelope:
+        levels: [-48, 0, -1, -48]
+        durations: [0, 0.1, 10, 5]
+      keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
+      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 0}
+      velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
+    - frequency: 1
+      detune: 0
+      output_level: 0
+      waveform: 0
+      fixed_frequency: false
+      sync_start: true
+      tempo_sync: false
+      fm_level: [0, 0, 0, 0, 0, 0.433070868, 0, 0]
+      mod_sensitivity: 0
+      am_level: 0
+      envelope:
+        levels: [-48, 0, -48, -48]
+        durations: [0, 10, 10, 10]
       keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
       keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
       velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
       velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
-    - frequency: 9
+    - frequency: 18
       detune: 0
       output_level: 0
       waveform: 0
@@ -91,17 +96,20 @@ parameters:
       sync_start: false
       tempo_sync: false
       fm_level: [0, 0, 0, 0, 0, 0.1, 0, 0]
+      mod_sensitivity: 0
       am_level: 0
       envelope:
-        levels: [-48, -4, -24, -48]
-        durations: [0.05, 2, 10, 2]
+        levels: [-48, -8, -40, -48]
+        durations: [0, 0.2, 0.65, 0.06]
       keyboard_level_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
       keyboard_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 440}
-      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 1}
+      velocity_level_curve: {left_depth: -3, left_exponential: true, right_depth: 0, right_exponential: false, breakpoint: 0}
       velocity_rate_curve: {left_depth: 0, left_exponential: false, right_depth: 0, right_exponential: false, breakpoint: 1}
   frequency:
     transpose: 0
     randomize: 0
+    bend_sensitivity: 2
+    mod_sensitivity: 0
     lfo_depth: 0
     tempo_sync: false
     envelope:
@@ -112,6 +120,8 @@ parameters:
     randomize: 0
     type: 0
     Q: 0
+    bend_sensitivity: 0
+    mod_sensitivity: 0
     lfo_depth: 0
     fixed_frequency: false
     tempo_sync: false
