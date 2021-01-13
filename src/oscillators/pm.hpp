@@ -18,9 +18,14 @@ private:
 public:
 	PM() = default;
 
-	void init()
+	void init(float phase = {})
 	{
-		this->phase = {};
+		this->phase = phase;
+	}
+
+	void reinit(float phase = {})
+	{
+		this->phase += phase;
 	}
 
 	void update(float delta)

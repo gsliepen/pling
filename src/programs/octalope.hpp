@@ -24,6 +24,7 @@ class Octalope: public Program
 			float frequency{1};
 			float detune{};
 			float output_level{};
+			float phase{};
 			uint8_t waveform{};
 			uint8_t frequency_coarse{64};
 			uint8_t frequency_fine{};

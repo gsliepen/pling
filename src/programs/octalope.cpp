@@ -180,9 +180,10 @@ void Octalope::Voice::init(uint8_t key, float freq, float velocity, const Parame
 
 		if (params.ops[i].sync) {
 			ops[i].envelope.init(params.ops[i].envelope);
-			ops[i].osc.init();
+			ops[i].osc.init(params.ops[i].phase);
 		} else {
 			ops[i].envelope.reinit(params.ops[i].envelope);
+			ops[i].osc.reinit(params.ops[i].phase);
 		}
 
 		if (params.ops[i].tempo) {
@@ -411,6 +412,10 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			op.output_level = val ? cc_exponential(val, 0, 1.0f / 65536, 1, 1) : 0;
 			break;
 
+		case 6:
+			op.phase = val / 128.0f;
+			break;
+
 		default:
 			break;
 		}
@@ -592,6 +597,7 @@ bool Octalope::load(const YAML::Node &yaml)
 		auto &op = params.ops[i++];
 		op.frequency = node["frequency"].as<float>(1);
 		op.detune = node["detune"].as<float>(0);
+		op.phase = node["phase"].as<float>(0);
 		op.output_level = node["output_level"].as<float>(0);
 		op.waveform = node["waveform"].as<int>(0);
 		op.fixed = node["fixed_frequency"].as<bool>(false);
@@ -651,6 +657,7 @@ YAML::Node Octalope::save()
 		auto &op = params.ops[i];
 		node["frequency"] = op.frequency;
 		node["detune"] = op.detune;
+		node["phase"] = op.phase;
 		node["output_level"] = op.output_level;
 		node["waveform"] = int(op.waveform);
 		node["fixed_frequency"] = op.fixed;
@@ -740,8 +747,7 @@ bool Octalope::build_operator_waveform_widget()
 		int waveform = op.waveform;
 		ImGui::SliderInt("Waveform", &waveform, 0, 4, waveform_names[op.waveform]);
 		ImGui::InputFloat("Output level", &op.output_level, 0, 1.0f);
-		ImGui::InputFloat("Mod sensitivity", &op.mod_sensitivity, 0, 2.0f);
-		ImGui::InputFloat("Op8 mod depth", &op.am_level, 0, 2.0f);
+		ImGui::InputFloat("Phase", &op.phase, 0.0f, 1.0f);
 		ImGui::End();
 		return true;
 	}
