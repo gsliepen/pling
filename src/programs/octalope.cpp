@@ -20,6 +20,12 @@ static float rng(float range)
 	return dist(random_engine);
 }
 
+static float noise()
+{
+	std::uniform_real_distribution<float> dist{-1.0f, 1.0f};
+	return dist(random_engine);
+}
+
 void Octalope::Operator::Parameters::update_frequency()
 {
 	if (fixed) {
@@ -108,10 +114,10 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 				break;
 
 			case 4:
-				value = ops[i].osc.revsaw(pm);
+				value = noise();
 				break;
 
-			// TODO: S/H, noise, unity?
+			// TODO: S/H, unity?
 
 			default:
 				value = 0;
@@ -743,7 +749,7 @@ bool Octalope::build_operator_waveform_widget()
 		ImGui::Checkbox("Sync start", &op.sync);
 		ImGui::SameLine();
 		ImGui::Checkbox("Tempo sync", &op.tempo);
-		static const char *waveform_names[] = {"Sine", "Triangle", "Square", "Saw", "Rev. Saw"};
+		static const char *waveform_names[] = {"Sine", "Triangle", "Square", "Saw", "Noise"};
 		int waveform = op.waveform;
 		ImGui::SliderInt("Waveform", &waveform, 0, 4, waveform_names[op.waveform]);
 		ImGui::InputFloat("Output level", &op.output_level, 0, 1.0f);
