@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cmath>
+#include <functional>
 #include <string>
 #include <yaml-cpp/yaml.h>
 
