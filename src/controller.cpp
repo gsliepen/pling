@@ -194,7 +194,7 @@ void Controller::load(const std::string &hwid)
 	filename /= hwid;
 	auto path = config.get_load_path(filename);
 
-	if (!fs::exists(path)) {
+	if (hwid.empty() || !fs::exists(path)) {
 		path = config.get_load_path("controllers/default");
 	}
 
