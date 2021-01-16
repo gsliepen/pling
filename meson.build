@@ -16,6 +16,7 @@ glm = dependency('glm')
 sdl2 = dependency('SDL2')
 threads = dependency('threads')
 yaml_cpp = dependency('yaml-cpp')
+stdcppfs = cpp.find_library('stdc++fs', required: false)
 
 config_data = configuration_data()
 config_data.set_quoted('DATADIR', get_option('prefix') / get_option('datadir'))
