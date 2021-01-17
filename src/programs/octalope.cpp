@@ -862,7 +862,7 @@ bool Octalope::build_global_pitch_widget()
 	}
 
 	case Context::ENVELOPE:
-		return params.frequency.envelope.build_widget(fmt::format("Pitch", int(current_op)));
+		return params.frequency.envelope.build_widget(fmt::format("Pitch", int(current_op)), 48.0f);
 
 	default:
 		return false;
@@ -897,7 +897,7 @@ bool Octalope::build_global_filter_widget()
 	}
 
 	case Context::ENVELOPE:
-		return params.filter.envelope.build_widget(fmt::format("Filter cutoff", int(current_op)));
+		return params.filter.envelope.build_widget(fmt::format("Filter cutoff", int(current_op)), 48.0f);
 
 	default:
 		return false;

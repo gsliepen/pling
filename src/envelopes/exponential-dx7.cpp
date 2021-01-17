@@ -224,7 +224,7 @@ bool ExponentialDX7::Parameters::build_widget(const std::string &name, float bim
 
 	for (int i = 0; i < 4; i++) {
 		float ytick = ct + ch * i / 4;
-		int value = bimodal_range ? bimodal_range / 2 * (i - 2) : i * -12;
+		int value = bimodal_range ? -bimodal_range / 2 * (i - 2) : i * -12;
 		auto label = fmt::format("{:3d} dB", value);
 		list->AddLine({x, ytick}, {x + w, ytick}, ImColor(255, 255, 255, 64));
 		list->AddText({x + 2, ytick}, ImColor{255, 255, 255, 128}, label.c_str());
