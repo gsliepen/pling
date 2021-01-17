@@ -204,12 +204,16 @@ void KarplusStrong::modulation(uint8_t val)
 
 void KarplusStrong::sustain(bool val)
 {
-	voices.set_sustain(val);
+	voices.set_sustain(val, [](Voice & voice) {
+		voice.release();
+	});
 }
 
 void KarplusStrong::release_all()
 {
-	voices.release_all();
+	voices.release_all([](Voice & voice) {
+		voice.release();
+	});
 }
 
 bool KarplusStrong::load(const YAML::Node &yaml)

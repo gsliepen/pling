@@ -134,7 +134,7 @@ class Octalope: public Program
 
 		void init(uint8_t key, float freq, float vel, const Parameters &params);
 		bool render(Chunk &chunk, Parameters &params);
-		void release();
+		void release(const Parameters &params);
 		bool is_active()
 		{
 			return ops[0].envelope.is_active();

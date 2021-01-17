@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-#include <iostream>
 #include "exponential-dx7.hpp"
 
 #include <fmt/format.h>
@@ -14,6 +13,8 @@ namespace Envelope
 
 float ExponentialDX7::update(const Parameters &param, float rate_scaling)
 {
+	float dt = rate_scaling / sample_rate;
+
 	switch (state) {
 	case State::off:
 		amplitude = param.level[0];
@@ -23,29 +24,22 @@ float ExponentialDX7::update(const Parameters &param, float rate_scaling)
 	case State::attack2:
 	case State::attack3: {
 		int i = static_cast<int>(state);
+		duration -= dt;
 
-		if (!param.duration[i - 1]) {
-			amplitude = param.level[i];
-			state = static_cast<State>(i + 1);
-			break;
+		while (duration <= 0) {
+			state = State(++i);
+
+			if (state == State::sustain) {
+
+				amplitude = param.level[3];
+				break;
+			}
+
+			duration += param.duration[i - 1];
 		}
 
-		float rate = 48.0f / (param.duration[i - 1] * sample_rate * rate_scaling);
-
-		if (amplitude > param.level[i]) {
-			amplitude -= rate;
-
-			if (amplitude <= param.level[i]) {
-				amplitude = param.level[i];
-				state = static_cast<State>(i + 1);
-			}
-		} else {
-			amplitude += rate;
-
-			if (amplitude >= param.level[i]) {
-				amplitude = param.level[i];
-				state = static_cast<State>(i + 1);
-			}
+		if (state != State::sustain) {
+			amplitude = param.level[i] + (param.level[i - 1] - param.level[i]) * duration / param.duration[i - 1];
 		}
 
 		break;
@@ -56,36 +50,55 @@ float ExponentialDX7::update(const Parameters &param, float rate_scaling)
 		break;
 
 	case State::release: {
-		if (!param.duration[3]) {
-			amplitude = param.level[0];
+		amplitude += (param.level[0] - amplitude) * dt / duration;
+		duration -= dt;
+
+		if (duration <= 0) {
 			state = State::off;
+			amplitude = param.level[0];
 			break;
 		}
+	}
+	}
 
-		float rate = 48.0f / (param.duration[3] * sample_rate);
+	if (!std::isfinite(amplitude)) {
+		amplitude = 0;
+	}
 
-		if (amplitude > param.level[0]) {
-			amplitude -= rate;
+	return dB_to_amplitude(amplitude);
+}
 
-			if (amplitude <= param.level[0]) {
-				amplitude = param.level[0];
-				state = State::off;
-			}
-		} else {
-			amplitude += rate;
+void ExponentialDX7::reinit(const Parameters &param)
+{
+	// Find the earliest point on the envelope matching the current amplitude
+	state = State::release;
 
-			if (amplitude <= param.level[0]) {
-				amplitude = param.level[0];
-				state = State::off;
+	for (int i = 0; i < 3; ++i) {
+		float delta = param.level[(i + 1) % 4] - param.level[i];
+
+		if (!delta) {
+			// Special case if the slope is zero
+			if (amplitude == param.level[i]) {
+				duration = param.duration[i];
+				state = State(i + 1);
+				break;
 			}
 		}
 
-		break;
-	}
+		auto t = (amplitude - param.level[i]) / delta;
+
+		if (t >= 0 && t < 1) {
+			duration = param.duration[i] * (1 - t);
+			state = State(i + 1);
+			break;
+		}
 	}
 
-	//std::cerr << static_cast<int>(state) << " " << amplitude << " " << dB_to_amplitude(amplitude) << "\n";
-	return dB_to_amplitude(amplitude);
+	if (state == State::release) {
+		amplitude = param.level[0];
+		duration = param.duration[0];
+		state = State::attack1;
+	}
 }
 
 void ExponentialDX7::Parameters::build_curve(float bimodal_range, ImColor color) const

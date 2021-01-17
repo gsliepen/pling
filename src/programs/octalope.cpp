@@ -209,13 +209,13 @@ void Octalope::Voice::init(uint8_t key, float freq, float velocity, const Parame
 	}
 }
 
-void Octalope::Voice::release()
+void Octalope::Voice::release(const Parameters &params)
 {
-	frequency.envelope.release();
-	filter.envelope.release();
+	frequency.envelope.release(params.frequency.envelope);
+	filter.envelope.release(params.filter.envelope);
 
-	for (auto &op : ops) {
-		op.envelope.release();
+	for (int i = 0; i < 8; ++i) {
+		ops[i].envelope.release(params.ops[i].envelope);
 	}
 }
 
@@ -261,20 +261,18 @@ float Octalope::get_base_frequency() const
 
 void Octalope::note_on(uint8_t key, uint8_t vel)
 {
-	Voice *voice = voices.press(key);
-
-	if (!voice) {
-		return;
+	if (auto voice = voices.press(key)) {
+		float freq = 440.0 * std::exp2((key - 69) / 12.0);
+		float amp = std::exp((vel - 127.) / 32.);
+		voice->init(key, freq, amp, params);
 	}
-
-	float freq = 440.0 * std::exp2((key - 69) / 12.0);
-	float amp = std::exp((vel - 127.) / 32.);
-	voice->init(key, freq, amp, params);
 }
 
 void Octalope::note_off(uint8_t key, uint8_t vel)
 {
-	voices.release(key);
+	if (auto voice = voices.release(key)) {
+		voice->release(params);
+	}
 }
 
 void Octalope::pitch_bend(int16_t value)
@@ -587,12 +585,16 @@ void Octalope::set_button(MIDI::Control control, uint8_t val)
 
 void Octalope::sustain(bool val)
 {
-	voices.set_sustain(val);
+	voices.set_sustain(val, [&](Voice & voice) {
+		voice.release(params);
+	});
 }
 
 void Octalope::release_all()
 {
-	voices.release_all();
+	voices.release_all([&](Voice & voice) {
+		voice.release(params);
+	});
 }
 
 bool Octalope::load(const YAML::Node &yaml)

@@ -182,12 +182,16 @@ void Simple::set_button(MIDI::Control control, uint8_t val)
 
 void Simple::sustain(bool val)
 {
-	voices.set_sustain(val);
+	voices.set_sustain(val, [](Voice & voice) {
+		voice.release();
+	});
 }
 
 void Simple::release_all()
 {
-	voices.release_all();
+	voices.release_all([](Voice & voice) {
+		voice.release();
+	});
 }
 
 bool Simple::load(const YAML::Node &yaml)

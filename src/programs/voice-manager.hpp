@@ -143,32 +143,24 @@ public:
 	 */
 	Voice *release(uint8_t key)
 	{
-		Voice *voice = nullptr;
-
 		for (unsigned int i = 0; i < N; ++i) {
 			if (state[i].active && state[i].key == key) {
 				state[i].pressed = false;
-				voice = &voices[i];
-
-				if (!state[i].sustained) {
-					voice->release();
-				}
-
-				break;
+				return !state[i].sustained ? &voices[i] : nullptr;
 			}
 		}
 
-		return voice;
+		return {};
 	}
 
 	/**
 	 * Release all voices.
 	 */
-	void release_all()
+	void release_all(std::function<void(Voice &)> release_func)
 	{
 		for (unsigned int i = 0; i < N; ++i) {
 			state[i].pressed = false;
-			voices[i].release();
+			release_func(voices[i]);
 		}
 	}
 
@@ -177,7 +169,7 @@ public:
 	 *
 	 * @param sustain  True if sustain should be on, false if off.
 	 */
-	void set_sustain(bool sustain)
+	void set_sustain(bool sustain, std::function<void(Voice &)> release_func)
 	{
 		this->sustain = sustain;
 
@@ -192,27 +184,10 @@ public:
 			// Release all non-pressed sustained keys
 			for (unsigned int i = 0; i < N; ++i) {
 				if (state[i].active && state[i].sustained && !state[i].pressed) {
-					voices[i].release();
+					release_func(voices[i]);
 				}
 
 				state[i].sustained = false;
-			}
-		}
-	}
-
-	/**
-	 * Stops the voice for the given key.
-	 *
-	 * @param key  A MIDI key number.
-	 */
-	void stop(uint8_t key)
-	{
-		for (unsigned int i = 0; i < N; ++i) {
-			if (state[i].key == key) {
-				state[i].active = false;
-				state[i].pressed = false;
-				state[i].sustained = false;
-				voices[i].release();
 			}
 		}
 	}

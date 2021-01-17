@@ -17,6 +17,7 @@ namespace Envelope
 class ExponentialDX7
 {
 	float amplitude{};
+	float duration{};
 	enum class State {
 		off,
 		attack1,
@@ -38,14 +39,12 @@ public:
 		YAML::Node save() const;
 	};
 
-	void reinit(const Parameters &param)
-	{
-		state = State::attack1;
-	}
+	void reinit(const Parameters &param);
 
 	void init(const Parameters &param)
 	{
 		amplitude = param.level[0];
+		duration = param.duration[0];
 		state = State::attack1;
 	}
 
@@ -54,9 +53,10 @@ public:
 		return state != State::off;
 	}
 
-	void release()
+	void release(const Parameters &param)
 	{
 		state = State::release;
+		duration = param.duration[3];
 	}
 
 	float update(const Parameters &param, float rate_scaling = 1.0f);
