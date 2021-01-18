@@ -15,14 +15,22 @@ class StateVariable
 	float band{};
 	float high{};
 
+	float low24{};
+	float band24{};
+	float high24{};
+
 public:
 	struct Parameters {
 		enum class Type {
 			none,
 			lowpass,
+			lowpass24,
 			highpass,
+			highpass24,
 			bandpass,
+			bandpass24,
 			notch,
+			notch24,
 		} type{};
 
 		float f{1};
@@ -45,15 +53,15 @@ public:
 
 	float filter(Parameters &params, float in)
 	{
+		if (params.type == Parameters::Type::none) {
+			return in;
+		}
+
 		low  = params.f * band + low;
 		high = in - params.q * band - low;
 		band = params.f * high + band;
 
 		switch (params.type) {
-		case Parameters::Type::none:
-			return in;
-			break;
-
 		case Parameters::Type::lowpass:
 			return low;
 			break;
@@ -68,6 +76,34 @@ public:
 
 		case Parameters::Type::notch:
 			return high + low;
+			break;
+
+		case Parameters::Type::lowpass24:
+			low24  = params.f * band24 + low24;
+			high24 = low - band24 - low24;
+			band24 = params.f * high24 + band24;
+			return low24;
+			break;
+
+		case Parameters::Type::highpass24:
+			low24  = params.f * band24 + low24;
+			high24 = high - band24 - low24;
+			band24 = params.f * high24 + band24;
+			return high24;
+			break;
+
+		case Parameters::Type::bandpass24:
+			low24  = params.f * band24 + low24;
+			high24 = band - band24 - low24;
+			band24 = params.f * high24 + band24;
+			return band24;
+			break;
+
+		case Parameters::Type::notch24:
+			low24  = params.f * band24 + low24;
+			high24 = high + low - band24 - low24;
+			band24 = params.f * high24 + band24;
+			return high24 + low24;
 			break;
 
 		default:

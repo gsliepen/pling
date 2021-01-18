@@ -541,7 +541,7 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			break;
 
 		case 4:
-			params.filter.type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 5));
+			params.filter.type = static_cast<Filter::StateVariable::Parameters::Type>(cc_select(val, 9));
 			params.filter.svf.set(params.filter.type, params.filter.frequency, params.filter.Q);
 			break;
 
@@ -886,9 +886,14 @@ bool Octalope::build_global_filter_widget()
 		ImGui::Checkbox("Fixed frequency", &params.filter.fixed);
 		ImGui::SameLine();
 		ImGui::Checkbox("Tempo sync", &params.filter.tempo);
-		static const char *type_names[] = {"Off", "12 dB Low pass", "12 dB High pass", "12 dB Band pass", "12 dB Notch"};
+		static const char *type_names[] = {"Off",
+		                                   "12 dB Low pass", "24 dB Low pass",
+		                                   "12 dB High pass", "24 dB High pass",
+		                                   "12 dB Band pass", "24 dB Band pass",
+		                                   "12 dB Notch", "24 dB Notch",
+		                                  };
 		int type = static_cast<int>(params.filter.type);
-		ImGui::SliderInt("Type", &type, 0, 4, type_names[type]);
+		ImGui::SliderInt("Type", &type, 0, 8, type_names[type]);
 		ImGui::InputFloat("Q", &params.filter.Q, 0, 100.0f);
 		ImGui::InputFloat("Mod sensitivity", &params.filter.mod_sensitivity, 0, 2.0f);
 		ImGui::InputFloat("Op8 mod depth", &params.filter.lfo_depth, 0.0f, 16.0f);
