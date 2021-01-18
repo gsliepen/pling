@@ -37,7 +37,7 @@ class State
 	void set_sustain(MIDI::Control control, MIDI::Port &port, int8_t value);
 
 public:
-	void process_control(MIDI::Control control, MIDI::Port &port, const uint8_t *data, ssize_t len);
+	void process_control(MIDI::Control control, MIDI::Port &port, const uint8_t value);
 
 	void set_active_channel(MIDI::Port &port, uint8_t channel)
 	{

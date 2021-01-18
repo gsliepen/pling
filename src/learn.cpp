@@ -97,36 +97,36 @@ void UI::build_learn_window()
 		ImGui::EndCombo();
 	}
 
-	std::vector<uint8_t> last_command;
+	snd_seq_event_t last_event;
 	std::string description;
 
 	if (port) {
-		last_command = port->get_last_command();
-		description = MIDI::command_to_text(last_command);
+		last_event = port->get_last_event();
+		description = MIDI::event_to_text(last_event);
+	} else {
+		last_event.type = SND_SEQ_EVENT_NONE;
 	}
 
 	Command command{};
+	command.port = port;
 
 	ImGui::LabelText("MIDI command", description.c_str());
 
-	if (last_command.size() == 3) {
-		switch (last_command[0] & 0xf0) {
-		case 0x80:
-			// Map note-off to note-on
-			last_command[0] = 0x90;
-			[[fallthrough]];
+	switch (last_event.type) {
+	case SND_SEQ_EVENT_NOTEOFF:
+	case SND_SEQ_EVENT_NOTEON:
+		command.command = 0x90;
+		command.number = last_event.data.note.note;
+		break;
 
-		case 0x90:
-		case 0xb0:
-			command.port = port;
-			command.command = last_command[0];
-			command.number = last_command[1];
-			break;
+	case SND_SEQ_EVENT_CONTROLLER:
+		command.command = 0xb0;
+		command.number = last_event.data.control.param;
+		break;
 
-		default:
-			// We don't handle this kind of event
-			break;
-		}
+	default:
+		// We don't handle this kind of event
+		break;
 	}
 
 	if (command.command) {

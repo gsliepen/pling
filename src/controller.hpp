@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <alsa/asoundlib.h>
 #include <string>
 #include <variant>
 #include <unordered_map>
@@ -19,6 +20,28 @@ struct Message {
 	bool operator==(const Message &rhs) const noexcept
 	{
 		return status == rhs.status && data == rhs.data;
+	}
+
+	Message() = default;
+	Message(const snd_seq_event_t &event)
+	{
+		switch (event.type) {
+		case SND_SEQ_EVENT_NOTEON:
+		case SND_SEQ_EVENT_NOTEOFF:
+			status = 0x90 | event.data.note.channel;
+			data = event.data.note.note;
+			break;
+
+		case SND_SEQ_EVENT_CONTROLLER:
+			status = 0xb0 | event.data.control.channel;
+			data = event.data.control.param;
+			break;
+
+		default:
+			status = 0;
+			data = 0;
+			break;
+		}
 	}
 };
 
@@ -135,7 +158,7 @@ struct Controller {
 
 	void load(const std::string &hwid);
 
-	Control map(Message msg)
+	Control map(Message msg) const
 	{
 		if (auto it = mapping.find(msg); it != mapping.end()) {
 			return it->second;

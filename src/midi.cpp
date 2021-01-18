@@ -2,8 +2,10 @@
 
 #include "midi.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <fstream>
 #include <stdexcept>
 #include <unistd.h>
@@ -15,9 +17,9 @@
 namespace MIDI
 {
 
-Port::Port(const snd_rawmidi_info_t *info)
+Port::Port(snd_seq_t *seq, const snd_seq_port_info_t *info)
 {
-	open(info);
+	open(seq, info);
 }
 
 Port::~Port()
@@ -25,15 +27,18 @@ Port::~Port()
 	close();
 }
 
-void Port::open(const snd_rawmidi_info_t *info)
+void Port::open(snd_seq_t *seq, const snd_seq_port_info_t *info)
 {
-	card = snd_rawmidi_info_get_card(info);
-	device = snd_rawmidi_info_get_device(info);
-	sub = snd_rawmidi_info_get_subdevice(info);
+	client = snd_seq_port_info_get_client(info);
+	port = snd_seq_port_info_get_port(info);
 
-	auto hw_name = fmt::format("hw:{},{},{}", card, device, sub);
+	snd_seq_client_info_t *cinfo;
+	snd_seq_client_info_malloc(&cinfo);
+	snd_seq_get_any_client_info(seq, client, cinfo);
+	int card = snd_seq_client_info_get_card(cinfo);
+	snd_seq_client_info_free(cinfo);
 
-	name = snd_rawmidi_info_get_subdevice_name(info);
+	name = snd_seq_port_info_get_name(info);
 
 	auto filename = fmt::format("/proc/asound/card{}/usbid", card);
 	std::ifstream usbid_file(filename);
@@ -42,28 +47,25 @@ void Port::open(const snd_rawmidi_info_t *info)
 
 	if (std::getline(usbid_file, line)) {
 		hwid = line;
+	} else {
+		hwid = name;
 	}
-
-	if (int err = snd_rawmidi_open(&in, nullptr, hw_name.c_str(), SND_RAWMIDI_NONBLOCK); err < 0) {
-		return;
-	}
-
-	snd_rawmidi_drain(in);
-
-	// Try to open the output fd, but it's fine if there is none.
-	snd_rawmidi_open(nullptr, &out, hw_name.c_str(), SND_RAWMIDI_NONBLOCK);
 
 	// Match it to a MIDI controller definition
 	controller.load(hwid);
 }
 
-bool Port::is_match(const snd_rawmidi_info_t *info)
+bool Port::is_match(const snd_seq_port_info_t *info)
 {
-	int card = snd_rawmidi_info_get_card(info);
-
-	if (name != snd_rawmidi_info_get_subdevice_name(info)) {
+	if (name != snd_seq_port_info_get_name(info)) {
 		return false;
 	}
+
+	snd_seq_client_info_t *cinfo;
+	snd_seq_client_info_malloc(&cinfo);
+	snd_seq_client_info_set_client(cinfo, client);
+	int card = snd_seq_client_info_get_card(cinfo);
+	snd_seq_client_info_malloc(&cinfo);
 
 	auto filename = fmt::format("/proc/asound/card{}/usbid", card);
 	std::ifstream usbid_file(filename);
@@ -71,29 +73,20 @@ bool Port::is_match(const snd_rawmidi_info_t *info)
 	std::string line;
 
 	if (std::getline(usbid_file, line)) {
-		if (line == hwid) {
-			return true;
+		if (line != hwid) {
+			return false;
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void Port::close()
 {
 	panic();
 
-	snd_rawmidi_close(in);
-
-	if (out) {
-		snd_rawmidi_close(out);
-	}
-
-	in = {};
-	out = {};
-	card = -1;
-	device = -1;
-	sub = -1;
+	client = -1;
+	port = -1;
 }
 
 void Port::panic()
@@ -105,116 +98,24 @@ void Port::panic()
 
 Manager::Manager(Program::Manager &programs): programs(programs)
 {
+	snd_seq_open(&seq, "default", SND_SEQ_OPEN_DUPLEX, 0);
+	snd_seq_nonblock(seq, true);
+	snd_seq_set_client_name(seq, "pling");
+	snd_seq_create_simple_port(seq, "pling",
+	                           SND_SEQ_PORT_CAP_WRITE |
+	                           SND_SEQ_PORT_CAP_SUBS_WRITE,
+	                           SND_SEQ_PORT_TYPE_SOFTWARE |
+	                           SND_SEQ_PORT_TYPE_SYNTHESIZER |
+	                           SND_SEQ_PORT_TYPE_APPLICATION);
+
 	// Add a self-pipe.
 	if (pipe(pipe_fds)) {
 		throw std::runtime_error("Could not create pipe");
 	}
 
-	pfds.emplace_back();
-	auto &pfd = pfds.back();
+	auto &pfd = pfds.emplace_back();
 	pfd.fd = pipe_fds[0];
 	pfd.events = POLLIN | POLLERR | POLLHUP;
-}
-
-void Manager::start()
-{
-	scan_ports();
-
-	thread = std::thread(&Manager::process_events, this);
-}
-
-void Manager::scan_ports()
-{
-	snd_rawmidi_info_t *info;
-
-	if (int err = snd_rawmidi_info_malloc(&info); err < 0) {
-		throw std::runtime_error(snd_strerror(err));
-	}
-
-	for (int card = -1; snd_card_next(&card) >= 0 && card >= 0;) {
-		snd_ctl_t *ctl;
-		auto name = fmt::format("hw:{}", card);
-
-		if (snd_ctl_open(&ctl, name.c_str(), 0) < 0) {
-			continue;
-		}
-
-		for (int device = -1; snd_ctl_rawmidi_next_device(ctl, &device) >= 0 && device >= 0;) {
-			snd_rawmidi_info_set_device(info, device);
-
-			snd_rawmidi_info_set_stream(info, SND_RAWMIDI_STREAM_INPUT);
-			snd_ctl_rawmidi_info(ctl, info);
-			int subs_in = snd_rawmidi_info_get_subdevices_count(info);
-
-			// Ignore MIDI devices that don't send data to us
-			if (!subs_in) {
-				continue;
-			}
-
-			for (int sub = 0; sub < subs_in; sub++) {
-				snd_rawmidi_info_set_subdevice(info, sub);
-
-				if (snd_ctl_rawmidi_info(ctl, info) < 0) {
-					continue;
-				}
-
-				bool found = false;
-
-				for (size_t i = 0; i < ports.size(); ++i) {
-					auto &port = ports[i];
-
-					if (port.card == card && port.device == device && port.sub == sub && port.is_open()) {
-						// We already have this exact port open, skip it.
-						found = true;
-						break;
-					}
-
-					if (port.is_open() || !port.is_match(info)) {
-						continue;
-					}
-
-					/* We found a matching, unused port.
-					 * Assume it's the same physical device, and just reopen it.
-					 */
-					port.open(info);
-
-					if (port.is_open()) {
-						snd_rawmidi_poll_descriptors(port.in, &pfds[i + 1], 1);
-					}
-
-					found = true;
-					break;
-				}
-
-				if (found) {
-					continue;
-				}
-
-				bool is_first_port = ports.empty();
-
-				Port &port = ports.emplace_back(info);
-
-				if (is_first_port) {
-					state.set_active_channel(port, 0);
-					last_active_port = &port;
-				}
-
-				for (auto &channel : port.channels) {
-					programs.change(channel.program, 0);
-				}
-
-				pfds.emplace_back();
-
-				if (ports.back().is_open()) {
-					snd_rawmidi_poll_descriptors(ports.back().in, &pfds.back(), 1);
-				}
-			}
-		}
-
-		snd_ctl_close(ctl);
-	}
-
-	snd_rawmidi_info_free(info);
 }
 
 Manager::~Manager()
@@ -225,80 +126,215 @@ Manager::~Manager()
 
 	close(pipe_fds[0]);
 	close(pipe_fds[1]);
+
+	snd_seq_delete_port(seq, 0);
+	snd_seq_close(seq);
 }
 
-void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
+void Manager::start()
 {
-	// In learning mode we should not react to any MIDI command, but rather remember the last command.
-	if (state.get_learn_midi()) {
-		port.set_last_command(data, len);
+	snd_seq_connect_from(seq, 0, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+	scan_ports();
+	update_pfds();
+
+	thread = std::thread(&Manager::process_events, this);
+}
+
+void Manager::add_port(const snd_seq_port_info_t *pinfo)
+{
+	if ((snd_seq_port_info_get_capability(pinfo) & (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ)) != (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ)) {
 		return;
 	}
 
-	// Try to map the MIDI message to a control
-	uint8_t type = data[0] >> 4;
-	uint8_t chan = data[0] & 0xf;
+	int client = snd_seq_port_info_get_client(pinfo);
+	int portnr = snd_seq_port_info_get_port(pinfo);
 
-	Channel &channel = port.channels[chan];
-	Control control = port.controller.map({data[0], data[1]});
+	for (auto &port : ports) {
+		if (port.is_match(pinfo)) {
+			if (port.is_open()) {
+				std::cerr << "Adding port found existing open port that matches!\n";
+			} else {
+				port.open(seq, pinfo);
+				auto result = snd_seq_connect_from(seq, 0, client, portnr);
+
+				if (result < 0) {
+					std::cerr << "Could not connect to port!\n";
+					return;
+				}
+			}
+
+			return;
+		}
+	}
+
+	auto result = snd_seq_connect_from(seq, 0, client, portnr);
+
+	if (result < 0) {
+		std::cerr << "Could not connect to port!\n";
+		return;
+	}
+
+	bool is_first_port = ports.empty();
+	Port &port = ports.emplace_back(seq, pinfo);
+
+	if (is_first_port) {
+		state.set_active_channel(port, 0);
+		last_active_port = &port;
+	}
+
+	for (auto &channel : port.channels) {
+		programs.change(channel.program, 0);
+	}
+}
+
+void Manager::update_pfds()
+{
+	auto npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
+	pfds.resize(npfds + 1);
+	snd_seq_poll_descriptors(seq, pfds.data() + 1, npfds, POLLIN);
+}
+
+void Manager::scan_ports()
+{
+	snd_seq_client_info_t *cinfo;
+	snd_seq_port_info_t *pinfo;
+	snd_seq_client_info_malloc(&cinfo);
+	snd_seq_port_info_malloc(&pinfo);
+
+	snd_seq_client_info_set_client(cinfo, -1);
+
+	while (snd_seq_query_next_client(seq, cinfo) >= 0) {
+		int client = snd_seq_client_info_get_client(cinfo);
+
+		if (client == SND_SEQ_CLIENT_SYSTEM) {
+			continue;
+		}
+
+		snd_seq_port_info_set_client(pinfo, client);
+		snd_seq_port_info_set_port(pinfo, -1);
+		int card = snd_seq_client_info_get_card(cinfo);
+
+		if (card == -1) {
+			continue;
+		}
+
+		while (snd_seq_query_next_port(seq, pinfo) >= 0) {
+			add_port(pinfo);
+		}
+	}
+
+	snd_seq_port_info_malloc(&pinfo);
+	snd_seq_client_info_malloc(&cinfo);
+}
+
+void Manager::process_system_event(const snd_seq_event_t &event)
+{
+	switch (event.type) {
+	case SND_SEQ_EVENT_PORT_START: {
+		snd_seq_port_info_t *pinfo;
+		snd_seq_port_info_malloc(&pinfo);
+		snd_seq_get_any_port_info(seq, event.data.addr.client, event.data.addr.port, pinfo);
+		add_port(pinfo);
+		snd_seq_port_info_free(pinfo);
+		update_pfds();
+	}
+	break;
+
+	case SND_SEQ_EVENT_PORT_EXIT: {
+		auto port_it = std::find_if(ports.begin(), ports.end(), [event](const auto & port) {
+			return port.client == event.data.addr.client && port.port == event.data.addr.port;
+		});
+
+		if (port_it != ports.end()) {
+			port_it->close();
+			update_pfds();
+		}
+	}
+	break;
+
+
+	default:
+		break;
+
+	}
+
+}
+
+void Manager::process_seq_event(const snd_seq_event_t &event)
+{
+	auto port_it = std::find_if(ports.begin(), ports.end(), [event](const auto & port) {
+		return port.client == event.source.client && port.port == event.source.port;
+	});
+
+	if (port_it == ports.end()) {
+		if (event.source.client == SND_SEQ_CLIENT_SYSTEM) {
+			process_system_event(event);
+			return;
+		}
+
+		fmt::print(std::cerr, "Unknown source {}:{}\n", event.source.client, event.source.port);
+		return;
+	}
+
+	auto &port = *port_it;
+
+	Control control = port.controller.map(event);
 
 	if (control.command != Command::PASS) {
-		state.process_control(control, port, data, len);
+		uint8_t value;
+
+		switch (event.type) {
+		case SND_SEQ_EVENT_NOTEON:
+		case SND_SEQ_EVENT_NOTEOFF:
+			value = event.data.note.velocity;
+			break;
+
+		case SND_SEQ_EVENT_CONTROLLER:
+			value = event.data.control.value;
+			break;
+
+		default:
+			value = 0;
+			break;
+		}
+
+		state.process_control(control, port, value);
 		return;
 	}
 
-	// Process non-control messages
+	auto &channel = port.channels[event.data.control.channel & 0xf];
 	auto program = channel.program;
 
-	if (!program) {
-		return;
-	}
-
-	switch (type) {
-	case 0x0:
-	case 0x1:
-	case 0x2:
-	case 0x3:
-	case 0x4:
-	case 0x5:
-	case 0x6:
-	case 0x7:
-		// This should never happen in the first byte.
-		break;
-
-	// Channel voice messages
-	// ----------------------
-	case 0x8: // Note off
-		program->note_off(data[1], data[2]);
-		state.note_off(data[1]);
-		break;
-
-	case 0x9: // Note on
-		if (data[2]) {
+	switch (event.type) {
+	case SND_SEQ_EVENT_NOTEON:
+		if (event.data.note.velocity) {
 			programs.activate(program);
-			program->note_on(data[1], data[2]);
-			state.note_on(data[1], data[2]);
+			program->note_on(event.data.note.note, event.data.note.velocity);
+			state.note_on(event.data.note.note, event.data.note.velocity);
 		} else {
-			program->note_off(data[1], data[2]);
-			state.note_off(data[1]);
+			program->note_off(event.data.note.note, event.data.note.velocity);
+			state.note_off(event.data.note.note);
 		}
 
 		break;
 
-	case 0xa: // Polyphonic pressure
-		program->poly_pressure(data[1], data[2]);
+	case SND_SEQ_EVENT_NOTEOFF:
+		program->note_off(event.data.note.note, event.data.note.velocity);
+		state.note_off(event.data.note.note);
 		break;
 
-	case 0xb: // Control change
+	case SND_SEQ_EVENT_KEYPRESS: // Polyphonic pressure
+		program->poly_pressure(event.data.note.note, event.data.note.velocity);
+		break;
 
-		// Only handle controls defined in GM
-		switch (data[1]) {
-		case 1:
-			program->modulation(data[2]);
+	case SND_SEQ_EVENT_CONTROLLER:
+		switch (event.data.control.param) {
+		case MIDI_CTL_MSB_MODWHEEL:
+			program->modulation(event.data.control.value);
 			break;
 
-		case 64:
-			program->sustain(data[2] & 64);
+		case MIDI_CTL_SUSTAIN:
+			program->sustain(event.data.control.value & 64);
 			break;
 
 		default:
@@ -307,79 +343,22 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 
 		break;
 
-	case 0xc: // Program change
-		state.set_active_channel(port, chan);
-		programs.change(channel.program, data[1]);
+	case SND_SEQ_EVENT_PGMCHANGE:
+		state.set_active_channel(port, event.data.control.channel);
+		programs.change(channel.program, event.data.control.value);
 		state.set_active_program(channel.program);
 		break;
 
-	case 0xd: // Channel pressure
-		program->channel_pressure(data[1]);
+	case SND_SEQ_EVENT_CHANPRESS:
+		program->channel_pressure(event.data.control.value);
 		break;
 
-	case 0xe: { // Pitch bend
-		int16_t value = (data[1] | (data[2] << 7)) - 8192;
-		program->pitch_bend(value);
-		state.set_bend(value);
+	case SND_SEQ_EVENT_PITCHBEND:
+		program->pitch_bend(event.data.control.value);
+		state.set_bend(event.data.control.value);
 		break;
-	}
 
-	case 0xf: // Non-channel messages
-		switch (data[0] & 0x0f) {
-		// System common messages
-		// ----------------------
-		case 0x0: // system exclusive
-			break;
-
-		case 0x1: // time code
-			break;
-
-		case 0x2: // song position pointer
-			break;
-
-		case 0x3: // song select
-			break;
-
-		case 0x4: // (reserved)
-			break;
-
-		case 0x5: // (reserved)
-			break;
-
-		case 0x6: // tune request
-			break;
-
-		case 0x7: // end of system exclusive
-			break;
-
-		// System real-time messages
-		// -------------------------
-		case 0x8: // timing clock
-			break;
-
-		case 0x9: // (reserved)
-			break;
-
-		case 0xa: // start
-			break;
-
-		case 0xb: // continue
-			break;
-
-		case 0xc: // stop
-			break;
-
-		case 0xd: // (undefined)
-			break;
-
-		case 0xe: // active sensing
-			break;
-
-		case 0xf: // reset
-			break;
-		}
-
-		// TODO: handle partial SysEx messages?
+	default:
 		break;
 	}
 }
@@ -387,15 +366,13 @@ void Manager::process_midi_command(Port &port, const uint8_t *data, ssize_t len)
 void Manager::process_events()
 {
 	while (true) {
-		auto result = poll(&pfds[0], pfds.size(), 1000);
-		uint8_t buf[128];
+		auto result = poll(pfds.data(), pfds.size(), -1);
 
 		if (result < 0) {
 			throw std::runtime_error(strerror(errno));
 		}
 
 		if (result == 0) {
-			scan_ports();
 			continue;
 		}
 
@@ -404,39 +381,17 @@ void Manager::process_events()
 			break;
 		}
 
-		for (size_t i = 1; i < pfds.size(); ++i) {
-			auto revents = pfds[i].revents;
-			auto &port = ports[i - 1];
+		// Else, assume we got a sequencer event
+		while (true) {
+			snd_seq_event_t *event;
+			auto left = snd_seq_event_input(seq, &event);
 
-			if (revents & (POLLERR | POLLHUP)) {
-				port.close();
-				pfds[i].fd = -1;
+			if (event) {
+				process_seq_event(*event);
 			}
 
-			if (revents & POLLIN) {
-				auto len = snd_rawmidi_read(port.in, buf, sizeof buf);
-
-				if (len < 0) {
-					port.close();
-					pfds[i].fd = -1;
-				}
-
-				last_active_port = &port;
-
-				decltype(len) start = 0;
-				decltype(len) end;
-
-				// TODO: filter out real-time messages
-				for (end = 1; end < len; end++) {
-					if (buf[end] & 0x80 && (buf[end] != 0xf7 || buf[start] != 0xf0)) {
-						process_midi_command(port, buf + start, end - start);
-						start = end;
-					}
-				}
-
-				if (start < len) {
-					process_midi_command(port, buf + start, len - start);
-				}
+			if (left <= 0) {
+				break;
 			}
 		}
 	}
@@ -451,184 +406,51 @@ void Manager::panic()
 	state.release_all();
 }
 
-std::string command_to_text(const std::vector<uint8_t> &data)
+std::string event_to_text(const snd_seq_event_t &event)
 {
-	if (data.empty())
-		return {};
+	auto &data = event.data;
 
-	uint8_t type = data[0] >> 4;
+	switch (event.type) {
+	case SND_SEQ_EVENT_NOTEOFF:
+		return fmt::format("channel {} note-off key {} vel {}", data.note.channel, data.note.note, data.note.velocity);
 
-	uint8_t chan = data[0] & 0xf;
+	case SND_SEQ_EVENT_NOTEON:
+		return fmt::format("channel {} note-on key {} vel {}", data.note.channel, data.note.note, data.note.velocity);
 
-	switch (type) {
-	case 0x0:
-	case 0x1:
-	case 0x2:
-	case 0x3:
-	case 0x4:
-	case 0x5:
-	case 0x6:
-	case 0x7:
-		// This should never happen in the first byte.
+	case SND_SEQ_EVENT_KEYPRESS:
+		return fmt::format("channel {} polyphonic-pressure key {} value {}", data.note.channel, data.note.note, data.note.velocity);
+
+	case SND_SEQ_EVENT_CONTROLLER:
+		return fmt::format("channel {} control-change {} value {}", data.control.channel, data.control.param, data.control.value);
+
+	case SND_SEQ_EVENT_PGMCHANGE:
+		return fmt::format("channel {} program-change {}", data.control.channel, data.control.value);
+
+	case SND_SEQ_EVENT_CHANPRESS:
+		return fmt::format("channel {} channel-pressure {}", data.control.channel, data.control.value);
+
+	case SND_SEQ_EVENT_PITCHBEND:
+		return fmt::format("channel {} pitch-bend value {}", data.control.channel, data.control.value);
+
+	case SND_SEQ_EVENT_SYSEX:
+		return fmt::format("sysex");
+
+	case SND_SEQ_EVENT_QFRAME:
+		return fmt::format("time-code-quarter-frame value {}", data.control.value);
+
+	case SND_SEQ_EVENT_SONGPOS:
+		return fmt::format("song-position-pointer {}", data.control.value);
+
+	case SND_SEQ_EVENT_SONGSEL:
+		return fmt::format("song-select {}", data.control.value);
+
+	case SND_SEQ_EVENT_TUNE_REQUEST:
+		return "tune-request";
 		break;
 
-	// Channel voice messages
-	// ----------------------
-	case 0x8:
-		if (data.size() != 3) {
-			break;
-		}
-
-		return fmt::format("channel {} note-off key {} vel {}", chan + 1, data[1], data[2]);
-
-	case 0x9:
-		if (data.size() != 3) {
-			break;
-		}
-
-		return fmt::format("channel {} note-on key {} vel {}", chan + 1, data[1], data[2]);
-
-	case 0xa:
-		if (data.size() != 3) {
-			break;
-		}
-
-		return fmt::format("channel {} polyphonic-pressure key {} value {}", chan + 1, data[1], data[2]);
-
-	case 0xb:
-		if (data.size() != 3) {
-			break;
-		}
-
-		return fmt::format("channel {} control-change {} value {}", chan + 1, data[1], data[2]);
-
-	case 0xc:
-		if (data.size() != 2) {
-			break;
-		}
-
-		return fmt::format("channel {} program-change {}", chan + 1, data[1]);
-
-	case 0xd:
-		if (data.size() != 2) {
-			break;
-		}
-
-		return fmt::format("channel {} channel-pressure value {}", chan + 1, data[1]);
-
-	case 0xe: {
-		if (data.size() != 3) {
-			break;
-		}
-
-		int16_t value = (data[1] | (data[2] << 7)) - 8192;
-		return fmt::format("channel {} pitch-bend value {}", chan + 1, value);
+	default:
+		return "unknown";
 	}
-
-	case 0xf:
-		switch (data[0] & 0x0f) {
-		// System common messages
-		// ----------------------
-		case 0x0: {
-			std::string text = "sysex";
-
-			for (size_t i = 1; i < data.size(); ++i) {
-				if (data[i] == 0xf7) {
-					break;
-				}
-
-				text.push_back(' ');
-				text.push_back("0123456789ABCDEF"[data[i] >> 4]);
-				text.push_back("0123456789ABCDEF"[data[i] & 0xf]);
-			}
-
-			return text;
-		}
-
-		case 0x1:
-			if (data.size() != 2) {
-				break;
-			}
-
-			return fmt::format("time-code-quarter-frame type {} value {}", data[1] >> 4, data[1] && 0xf);
-
-		case 0x2: {
-			if (data.size() != 3) {
-				break;
-			}
-
-			uint16_t value = (data[1] | (data[2] << 7));
-			return fmt::format("song-position-pointer {}", value);
-		}
-
-		case 0x3:
-			if (data.size() != 2) {
-				break;
-			}
-
-			return fmt::format("song-select {}", data[1]);
-
-		case 0x4: // (reserved)
-			break;
-
-		case 0x5: // (reserved)
-			break;
-
-		case 0x6:
-			if (data.size() != 1) {
-				break;
-			}
-
-			return "tune-request";
-			break;
-
-		case 0x7:
-			if (data.size() != 1) {
-				break;
-			}
-
-			return "end-of-exclusive";
-			break;
-
-		// System real-time messages
-		// -------------------------
-		case 0x8:
-			return "timing-clock";
-
-		case 0x9: // (reserved)
-			break;
-
-		case 0xa:
-			return "start";
-
-		case 0xb:
-			return "continue";
-
-		case 0xc:
-			return "stop";
-
-		case 0xd: // (undefined)
-			break;
-
-		case 0xe:
-			return "active-sensing";
-
-		case 0xf:
-			return "reset";
-		}
-
-		break;
-	}
-
-	std::string text = "unknown";
-
-	for (size_t i = 1; i < data.size() - 1; ++i) {
-		text.push_back(' ');
-		text.push_back("0123456789ABCDEF"[data[i] >> 4]);
-		text.push_back("0123456789ABCDEF"[data[i] & 0xf]);
-	}
-
-	return text;
 }
 
 }

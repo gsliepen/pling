@@ -33,23 +33,20 @@ class Port
 {
 	friend class Manager;
 
-	snd_rawmidi_t *in{};
-	snd_rawmidi_t *out{};
+	int client{-1};
+	int port{-1};
 
-	int card{-1};
-	int device{-1};
-	int sub{-1};
 	std::string name;
 	std::string hwid;
 
-	mutable std::mutex last_command_mutex;
-	std::vector<uint8_t> last_command;
+	mutable std::mutex last_event_mutex;
+	snd_seq_event_t last_event;
 
 	Controller controller;
 	Channel channels[16];
 
 public:
-	Port(const snd_rawmidi_info_t *info);
+	Port(snd_seq_t *seq, const snd_seq_port_info_t *info);
 	~Port();
 
 	Port(const Port &other) = delete;
@@ -57,8 +54,8 @@ public:
 	Port &operator=(const Port &other) = delete;
 
 	void close();
-	void open(const snd_rawmidi_info_t *info);
-	bool is_match(const snd_rawmidi_info_t *info);
+	void open(snd_seq_t *seq, const snd_seq_port_info_t *info);
+	bool is_match(const snd_seq_port_info_t *info);
 
 	void panic();
 
@@ -74,25 +71,19 @@ public:
 
 	bool is_open() const
 	{
-		return in;
+		return client != -1;
 	}
 
-	void set_last_command(const uint8_t *data, ssize_t len)
+	void set_last_event(const snd_seq_event_t &event)
 	{
-		std::lock_guard lock(last_command_mutex);
-
-		if (len < 0) {
-			last_command.clear();
-		} else {
-			last_command.resize(len);
-			std::copy(data, data + len, last_command.begin());
-		}
+		std::lock_guard lock(last_event_mutex);
+		last_event = event;
 	}
 
-	std::vector<uint8_t> get_last_command() const
+	snd_seq_event_t get_last_event() const
 	{
-		std::lock_guard lock(last_command_mutex);
-		return last_command;
+		std::lock_guard lock(last_event_mutex);
+		return last_event;
 	}
 
 	const Channel &get_channel(uint8_t channel)
@@ -112,8 +103,14 @@ class Manager
 	std::thread thread;
 	int pipe_fds[2] {-1, -1};
 	Port *last_active_port{};
+	snd_seq_t *seq{};
+	snd_midi_event_t *event_parser{};
 
+	void update_pfds();
+	void add_port(const snd_seq_port_info_t *pinfo);
 	void process_midi_command(Port &port, const uint8_t *data, ssize_t len);
+	void process_system_event(const snd_seq_event_t &event);
+	void process_seq_event(const snd_seq_event_t &event);
 	void process_events();
 	void scan_ports();
 
@@ -144,7 +141,7 @@ public:
 	}
 };
 
-std::string command_to_text(const std::vector<uint8_t> &data);
+std::string event_to_text(const snd_seq_event_t &event);
 
 extern Manager manager;
 

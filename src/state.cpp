@@ -32,24 +32,8 @@ void State::set_button(MIDI::Control control, MIDI::Port &port, int8_t value)
 	}
 }
 
-void State::process_control(MIDI::Control control, MIDI::Port &port, const uint8_t *data, ssize_t len)
+void State::process_control(MIDI::Control control, MIDI::Port &port, uint8_t value)
 {
-	int8_t value{};
-
-	switch (data[0] & 0xf0) {
-	case 0x80: // Note off
-		value = 0;
-		break;
-
-	case 0x90: // Note on
-	case 0xb0: // Control change
-		value = data[2];
-		break;
-
-	default:
-		break;
-	}
-
 	switch (control.command) {
 	/* Generic controls */
 	case MIDI::Command::PASS:
