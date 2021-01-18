@@ -92,9 +92,6 @@ UI::UI(RingBuffer &ringbuffer): ringbuffer(ringbuffer), oscilloscope(ringbuffer)
 	ImGui::GetStyle().AntiAliasedLines = false;
 
 	resize(w, h);
-
-	/* Early write out of FFTW wisdom */
-	fftwf_export_wisdom_to_filename("pling.wisdom");
 }
 
 UI::~UI()

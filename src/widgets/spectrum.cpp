@@ -57,6 +57,7 @@ Spectrum::Spectrum(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), progra
 	window.resize(fft_size);
 	spectrum.resize(texture_size);
 	plan = fftwf_plan_dft_r2c_1d(fft_size, input.data(), reinterpret_cast<fftwf_complex *>(input.data()), FFTW_MEASURE | FFTW_R2HC);
+	fftwf_export_wisdom_to_filename(config.get_cache_path("fft.wisdom").c_str());
 
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
