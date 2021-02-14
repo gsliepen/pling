@@ -55,7 +55,7 @@ public:
 
 	void close();
 	void open(snd_seq_t *seq, const snd_seq_port_info_t *info);
-	bool is_match(const snd_seq_port_info_t *info);
+	bool is_match(snd_seq_t *seq, const snd_seq_port_info_t *info);
 
 	void panic();
 

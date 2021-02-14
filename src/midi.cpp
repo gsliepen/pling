@@ -55,15 +55,17 @@ void Port::open(snd_seq_t *seq, const snd_seq_port_info_t *info)
 	controller.load(hwid);
 }
 
-bool Port::is_match(const snd_seq_port_info_t *info)
+bool Port::is_match(snd_seq_t *seq, const snd_seq_port_info_t *info)
 {
 	if (name != snd_seq_port_info_get_name(info)) {
 		return false;
 	}
 
+	auto other_client = snd_seq_port_info_get_client(info);
+
 	snd_seq_client_info_t *cinfo;
 	snd_seq_client_info_malloc(&cinfo);
-	snd_seq_client_info_set_client(cinfo, client);
+	snd_seq_get_any_client_info(seq, other_client, cinfo);
 	int card = snd_seq_client_info_get_card(cinfo);
 	snd_seq_client_info_malloc(&cinfo);
 
@@ -150,7 +152,7 @@ void Manager::add_port(const snd_seq_port_info_t *pinfo)
 	int portnr = snd_seq_port_info_get_port(pinfo);
 
 	for (auto &port : ports) {
-		if (port.is_match(pinfo)) {
+		if (port.is_match(seq, pinfo)) {
 			if (port.is_open()) {
 				std::cerr << "Adding port found existing open port that matches!\n";
 			} else {
