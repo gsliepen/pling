@@ -61,7 +61,7 @@ public:
 
 	float update(const Parameters &param, float rate_scaling = 1.0f);
 
-	constexpr float get() const
+	float get() const
 	{
 		return dB_to_amplitude(amplitude);
 	}

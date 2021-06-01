@@ -37,11 +37,11 @@ class Spectrum
 	float h;
 
 	static constexpr size_t fft_size = 8192;
-	static constexpr float min_freq = key_to_frequency(-0.5f);
-	static constexpr float max_freq = key_to_frequency(127.5f);
+	const float min_freq = key_to_frequency(-0.5f);
+	const float max_freq = key_to_frequency(127.5f);
 
-	static constexpr float min_dB = amplitude_to_dB(1.0f / 256.0f); // -48 dB
-	static constexpr float max_dB = amplitude_to_dB(4.0f);          // +12 dB
+	const float min_dB = amplitude_to_dB(1.0f / 256.0f); // -48 dB
+	const float max_dB = amplitude_to_dB(4.0f);          // +12 dB
 
 	fftwf_plan plan;
 	std::vector<float> input;

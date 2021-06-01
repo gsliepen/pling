@@ -318,7 +318,7 @@ void UI::build_main_program()
 
 	ImGui::PopFont();
 
-	ImGui::Text(fmt::format("Synth engine: {}", program->get_engine_name()).c_str());
+	ImGui::Text("Synth engine: %s", program->get_engine_name().c_str());
 	ImGui::Separator();
 	ImGui::Selectable(fmt::format("Track: 01  Pattern: 01  Metre: 4/4  Tempo: {:3.0f}", master_clock.get_tempo()).c_str());
 	auto time = master_clock.get_time_position();

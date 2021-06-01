@@ -33,9 +33,6 @@ class Oscilloscope
 	float w;
 	float h;
 
-	size_t crossing_sample;
-	float nudge;
-
 	std::vector<uint8_t> scope;
 	static void render_callback(const ImDrawList *parent_list, const ImDrawCmd *cmd);
 

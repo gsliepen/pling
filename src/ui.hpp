@@ -16,8 +16,8 @@ class UI
 	bool show_learn_window{};
 	bool show_program_select{};
 
-	static constexpr float min_dB = amplitude_to_dB(1.0f / 256.0f); // -48 dB
-	static constexpr float max_dB = amplitude_to_dB(4.0f);          // +12 dB
+	const float min_dB = amplitude_to_dB(1.0f / 256.0f); // -48 dB
+	const float max_dB = amplitude_to_dB(4.0f);          // +12 dB
 
 	struct Window {
 		SDL_Window *window{};

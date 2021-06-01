@@ -110,7 +110,7 @@ void UI::build_learn_window()
 	Command command{};
 	command.port = port;
 
-	ImGui::LabelText("MIDI command", description.c_str());
+	ImGui::LabelText("MIDI command", "%s", description.c_str());
 
 	switch (last_event.type) {
 	case SND_SEQ_EVENT_NOTEOFF:

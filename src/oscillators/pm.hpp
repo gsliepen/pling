@@ -42,12 +42,12 @@ public:
 		return phase - prev;
 	};
 
-	constexpr float sine(float pm) const
+	float sine(float pm) const
 	{
 		return std::sin((phase + pm) * float(2 * M_PI));
 	}
 
-	constexpr float fast_sine(float pm) const
+	float fast_sine(float pm) const
 	{
 		// Approximation of a sine using a parabola, without using branches.
 		const float x1 = frac(pm) - 0.5f;
@@ -56,27 +56,27 @@ public:
 		return std::copysign(v, x1);
 	}
 
-	constexpr float square(float pm) const
+	float square(float pm) const
 	{
 		return frac(pm) < 0.5f ? 1.0f : -1.0f;
 	}
 
-	constexpr float triangle(float pm) const
+	float triangle(float pm) const
 	{
 		return std::abs(frac(pm - 0.25f) - 0.5f) * 4.0f - 1.0f;
 	}
 
-	constexpr float saw(float pm) const
+	float saw(float pm) const
 	{
 		return frac(pm) * -2.0f + 1.0f;
 	}
 
-	constexpr float revsaw(float pm) const
+	float revsaw(float pm) const
 	{
 		return frac(pm) * 2.0f - 1.0f;
 	}
 
-	constexpr float operator()(float pm) const
+	float operator()(float pm) const
 	{
 		return frac(pm);
 	}
@@ -86,18 +86,18 @@ public:
 		return phase;
 	}
 
-	constexpr float operator()() const
+	float operator()() const
 	{
 		return phase;
 	}
 
-	constexpr float frac(float pm) const
+	float frac(float pm) const
 	{
 		float value = phase + pm;
 		return value - std::floor(value);
 	}
 
-	constexpr float get_zero_crossing(float offset, float delta) const
+	float get_zero_crossing(float offset, float delta) const
 	{
 		/* Going backwards from the current sample position + offset,
 		 * return the first zero crossing of the phase of this oscillator. */
