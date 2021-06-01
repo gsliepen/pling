@@ -26,6 +26,13 @@ static float noise()
 	return dist(random_engine);
 }
 
+static float sample_and_hold(bool trigger, float &hold, float sample = noise())
+{
+	if (trigger)
+		hold = sample;
+	return hold;
+}
+
 void Octalope::Operator::Parameters::update_frequency()
 {
 	if (fixed) {
@@ -86,6 +93,16 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 		// since it's more likely that an operator is modulated by a higher number one,
 		// and this way they are more likely to be exactly in sync.
 		for (int i = 8; i--;) {
+			// Update the unmodulated phase of the oscillator
+			float op_freq = params.ops[i].frequency;
+
+			if (!params.ops[i].fixed) {
+				op_freq *= voice_freq;
+			}
+
+			op_freq += params.ops[i].detune;
+			float sync = ops[i].osc.update_sync(op_freq / sample_rate);
+
 			// Determine the amount of phase modulation
 			float pm{};
 
@@ -96,7 +113,7 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 			// Get the oscillator's output value
 			float value;
 
-			switch (params.ops[i].waveform % 5) {
+			switch (params.ops[i].waveform % 8) {
 			case 0:
 				value = ops[i].osc.sine(pm);
 				break;
@@ -114,10 +131,20 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 				break;
 
 			case 4:
+				value = -ops[i].osc.saw(pm);
+				break;
+
+			case 5:
 				value = noise();
 				break;
 
-			// TODO: S/H, unity?
+			case 6:
+				value = sample_and_hold((sync + pm) < 0, ops[i].hold);
+				break;
+
+			case 7:
+				value = sample_and_hold(sync < 0, ops[i].hold, pm);
+				break;
 
 			default:
 				value = 0;
@@ -133,16 +160,6 @@ bool Octalope::Voice::render(Chunk &chunk, Parameters &params)
 			}
 
 			accum += ops[i].value * params.ops[i].output_level;
-
-			// Update the unmodulated phase of the oscillator
-			float op_freq = params.ops[i].frequency;
-
-			if (!params.ops[i].fixed) {
-				op_freq *= voice_freq;
-			}
-
-			op_freq += params.ops[i].detune;
-			ops[i].osc.update(op_freq / sample_rate);
 		}
 
 		// Apply the filter to the accumulated value so far
@@ -409,7 +426,7 @@ void Octalope::set_pot(MIDI::Control control, uint8_t val)
 			break;
 
 		case 4:
-			op.waveform = cc_select(val, 5);
+			op.waveform = cc_select(val, 8);
 			break;
 
 		case 5:
@@ -751,9 +768,9 @@ bool Octalope::build_operator_waveform_widget()
 		ImGui::Checkbox("Sync start", &op.sync);
 		ImGui::SameLine();
 		ImGui::Checkbox("Tempo sync", &op.tempo);
-		static const char *waveform_names[] = {"Sine", "Triangle", "Square", "Saw", "Noise"};
+		static const char *waveform_names[] = {"Sine", "Triangle", "Square", "Saw", "RevSaw", "Noise", "S&H", "Unity"};
 		int waveform = op.waveform;
-		ImGui::SliderInt("Waveform", &waveform, 0, 4, waveform_names[op.waveform]);
+		ImGui::SliderInt("Waveform", &waveform, 0, 7, waveform_names[op.waveform]);
 		ImGui::InputFloat("Output level", &op.output_level, 0, 1.0f);
 		ImGui::InputFloat("Phase", &op.phase, 0.0f, 1.0f);
 		ImGui::End();

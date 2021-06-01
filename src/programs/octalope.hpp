@@ -63,6 +63,7 @@ class Octalope: public Program
 		float output_level;
 		float rate{1};
 		float value{};
+		float hold{};
 	};
 
 	struct Parameters {
