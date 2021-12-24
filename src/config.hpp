@@ -22,7 +22,7 @@ public:
 	}
 
 private:
-	std::filesystem::path data_dir = DATADIR;
+	std::filesystem::path data_dir = DATADIR "/pling";
 	std::filesystem::path local_dir = "data";
 	std::filesystem::path cache_dir = "data";
 	YAML::Node config;
