@@ -124,7 +124,8 @@ Manager::~Manager()
 {
 	write(pipe_fds[1], "Q", 1);
 
-	thread.join();
+	if (thread.joinable())
+		thread.join();
 
 	close(pipe_fds[0]);
 	close(pipe_fds[1]);

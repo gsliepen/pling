@@ -2,6 +2,7 @@
 
 #include "pling.hpp"
 
+#include <chrono>
 #include <fftw3.h>
 #include <filesystem>
 #include <fmt/ostream.h>
@@ -90,8 +91,52 @@ static void setup_audio()
 	SDL_PauseAudioDevice(dev, 0);
 }
 
-int main(int argc, char *args[])
+static void benchmark()
 {
+	static Chunk chunk;
+
+	std::shared_ptr<Program> program;
+	programs.change(program, 5);
+	programs.activate(program);
+
+	// Warm-up
+	program->release_all();
+
+	for (size_t i = 0; i < 32; ++i) {
+		program->note_on(48 + i, 80 + i);
+	}
+
+	for (size_t i = 0; i < 100; ++i) {
+		programs.render(chunk);
+	}
+
+	// Measurement
+	program->release_all();
+
+	for (size_t i = 0; i < 32; ++i) {
+		program->note_on(48 + i, 80 + i);
+	}
+
+	using clock = std::chrono::steady_clock;
+	auto begin = clock::now();
+
+	for (size_t i = 0; i < 10000; ++i) {
+		programs.render(chunk);
+	}
+
+	auto end = clock::now();
+	auto diff = end - begin;
+
+	std::cout << "Rendered 1000 chunks in " << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << "ms\n";
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc > 1 && std::string(argv[1]) == "benchmark") {
+		benchmark();
+		return 0;
+	}
+
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	auto pref_path = SDL_GetPrefPath(NULL, "pling");
 	config.init(pref_path);
