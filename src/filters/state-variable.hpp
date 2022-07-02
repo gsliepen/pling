@@ -39,13 +39,13 @@ public:
 		void set(Type type, float freq, float Q)
 		{
 			this->type = type;
-			this->f = 2.0f * sin(glm::clamp(float(M_PI) * freq / sample_rate, 0.0f, std::asin(0.5f)));
+			this->f = 2.0f * std::sin(glm::clamp(float(M_PI) * freq / sample_rate, 0.0f, std::asin(0.5f)));
 			this->q = glm::clamp(1.0f / Q, 0.0f, 1.0f);
 		}
 
 		void set_freq(float freq)
 		{
-			this->f = 2.0f * sin(glm::clamp(float(M_PI) * freq / sample_rate, 0.0f, std::asin(0.5f)));
+			this->f = 2.0f * std::sin(glm::clamp(float(M_PI) * freq / sample_rate, 0.0f, std::asin(0.5f)));
 		}
 
 		bool build_widget(const std::string &name);

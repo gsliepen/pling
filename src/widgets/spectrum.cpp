@@ -74,7 +74,7 @@ Spectrum::Spectrum(const RingBuffer &ringbuffer): ringbuffer(ringbuffer), progra
 
 	/* Initialize a Hann window, see https://en.wikipedia.org/wiki/Hann_function */
 	for (size_t i = 0; i < fft_size; ++i) {
-		window[i] = 0.5 - 0.5 * cos(2 * M_PI * i / fft_size);
+		window[i] = 0.5 - 0.5 * std::cos(2 * M_PI * i / fft_size);
 	}
 }
 
@@ -111,8 +111,8 @@ void Spectrum::render(int screen_w, int screen_h) {
 
 		/* Interpolate between FFT samples */
 		const float fr = u_in * (fft_size / 2) - i_in;
-		const float value0 = amplitude_to_dB(abs(output[i_in]) / fft_size * 4);
-		const float value1 = amplitude_to_dB(abs(output[i_in + 1]) / fft_size * 4);
+		const float value0 = amplitude_to_dB(std::abs(output[i_in]) / fft_size * 4);
+		const float value1 = amplitude_to_dB(std::abs(output[i_in + 1]) / fft_size * 4);
 		const float dB = glm::mix(value0, value1, fr);
 		const float value = 1 + (dB - max_dB) / (max_dB - min_dB);
 
